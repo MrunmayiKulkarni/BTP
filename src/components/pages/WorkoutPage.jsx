@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import BackButton from '../common/BackButton';
 import { useWorkoutData } from '../../hooks/useWorkoutData';
 
@@ -22,7 +23,11 @@ const VALIDATION = {
   minWeight: 0
 };
 
-const WorkoutPage = ({ setCurrentPage, selectedDay, selectedExercise }) => {
+const WorkoutPage = () => {
+  const [searchParams] = useSearchParams();
+  const selectedDay = searchParams.get('day');
+  const selectedExercise = searchParams.get('exercise');
+
   const [sets, setSets] = useState('');
   const [reps, setReps] = useState('');
   const [weight, setWeight] = useState('');
@@ -64,15 +69,11 @@ const WorkoutPage = ({ setCurrentPage, selectedDay, selectedExercise }) => {
     }
   };
 
-  const handleBackClick = () => {
-    setCurrentPage('exercises');
-  };
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-900 to-purple-900 p-6">
       <div className="max-w-md mx-auto">
         <div className="flex items-center gap-4 mb-6">
-          <BackButton onClick={handleBackClick} />
+          <BackButton to={`/exercises?day=${selectedDay}`} />
           <div>
             <h1 className="text-2xl font-bold text-white">{selectedExercise}</h1>
             <p className="text-blue-200">{selectedDay}</p>

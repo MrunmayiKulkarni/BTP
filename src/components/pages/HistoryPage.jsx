@@ -6,7 +6,7 @@ import ProgressChart from '../charts/ProgressChart';
 import WorkoutSummary from '../charts/WorkoutSummary';
 import { useWorkoutData } from '../../hooks/useWorkoutData';
 
-const HistoryPage = ({ setCurrentPage }) => {
+const HistoryPage = () => {
   const [viewMode, setViewMode] = useState('volume');
   
   const { 
@@ -20,16 +20,12 @@ const HistoryPage = ({ setCurrentPage }) => {
   const volumeData = getVolumeData();
   const recentWorkouts = getRecentWorkouts();
 
-  const handleBackClick = () => {
-    setCurrentPage('home');
-  };
-
   if (workoutHistory.length === 0) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-900 to-purple-900 p-6">
         <div className="max-w-6xl mx-auto">
           <div className="flex items-center gap-4 mb-6">
-            <BackButton onClick={handleBackClick} />
+            <BackButton to="/" />
             <h1 className="text-3xl font-bold text-white flex items-center gap-3">
               <TrendingUp className="text-yellow-400" />
               Progress Tracker
@@ -50,7 +46,7 @@ const HistoryPage = ({ setCurrentPage }) => {
     <div className="min-h-screen bg-gradient-to-br from-blue-900 to-purple-900 p-6">
       <div className="max-w-6xl mx-auto">
         <div className="flex items-center gap-4 mb-6">
-          <BackButton onClick={handleBackClick} />
+          <BackButton to="/" />
           <h1 className="text-3xl font-bold text-white flex items-center gap-3">
             <TrendingUp className="text-yellow-400" />
             Progress Tracker

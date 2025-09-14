@@ -1,13 +1,13 @@
 import React from 'react';
 import { AppProvider } from './hooks/useWorkoutData';
-import Router from './Router';
+import AppRouter from './Router';
 import './styles/globals.css';
 
 function App() {
   return (
     <AppProvider>
       <div className="App">
-        <Router />
+        <AppRouter />
       </div>
     </AppProvider>
   );

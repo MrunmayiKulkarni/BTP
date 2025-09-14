@@ -1,36 +1,25 @@
-import React, { useState } from 'react';
+import React from 'react';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import HomePage from './components/pages/HomePage';
 import ExercisesPage from './components/pages/ExercisesPage';
 import WorkoutPage from './components/pages/WorkoutPage';
 import HistoryPage from './components/pages/HistoryPage';
+import LoginPage from './components/pages/LoginPage';
+import SignupPage from './components/pages/SignupPage';
 
-const Router = () => {
-  const [currentPage, setCurrentPage] = useState('home');
-  const [selectedDay, setSelectedDay] = useState(null);
-  const [selectedExercise, setSelectedExercise] = useState(null);
-
-  const navigationProps = {
-    setCurrentPage,
-    selectedDay,
-    setSelectedDay,
-    selectedExercise,
-    setSelectedExercise
-  };
-
-  const renderPage = () => {
-    switch (currentPage) {
-      case 'exercises':
-        return <ExercisesPage {...navigationProps} />;
-      case 'workout':
-        return <WorkoutPage {...navigationProps} />;
-      case 'history':
-        return <HistoryPage {...navigationProps} />;
-      default:
-        return <HomePage {...navigationProps} />;
-    }
-  };
-
-  return renderPage();
+const AppRouter = () => {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<HomePage />} />
+        <Route path="/exercises" element={<ExercisesPage />} />
+        <Route path="/workout" element={<WorkoutPage />} />
+        <Route path="/history" element={<HistoryPage />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/signup" element={<SignupPage />} />
+      </Routes>
+    </BrowserRouter>
+  );
 };
 
-export default Router;
+export default AppRouter;

@@ -1,31 +1,52 @@
 import React from 'react';
-import { Dumbbell, History } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Dumbbell, History, LogOut } from 'lucide-react'; // Add LogOut icon
+import { Link, useNavigate } from 'react-router-dom'; // Import useNavigate
 import { trainingDays } from '../../data/trainingDays';
 import Header from '../common/Header';
+import { useAuth } from '../../hooks/useAuth'; // Import the useAuth hook
 
 const HomePage = () => {
+  const { isAuthenticated, logout } = useAuth(); // Get auth state and logout function
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    logout();
+    navigate('/'); // Redirect to login page after logout
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-900 to-purple-900 p-6">
       <div className="max-w-4xl mx-auto">
         <div className="flex justify-between items-center mb-8">
-          <Header 
-            title="Gym Tracker Pro" 
-            subtitle="Track your fitness journey and visualize your progress" 
+          <Header
+            title="Gym Tracker Pro"
+            subtitle="Track your fitness journey and visualize your progress"
           />
           <div className="flex gap-4">
-            <Link
-              to="/login"
-              className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-xl transition-colors duration-300"
-            >
-              Login
-            </Link>
-            <Link
-              to="/signup"
-              className="bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 px-4 rounded-xl transition-colors duration-300"
-            >
-              Sign Up
-            </Link>
+            {isAuthenticated ? (
+              <button
+                onClick={handleLogout}
+                className="bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-xl transition-colors duration-300 flex items-center gap-2"
+              >
+                <LogOut size={18} />
+                Logout
+              </button>
+            ) : (
+              <>
+                <Link
+                  to="/"
+                  className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-xl transition-colors duration-300"
+                >
+                  Login
+                </Link>
+                <Link
+                  to="/signup"
+                  className="bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 px-4 rounded-xl transition-colors duration-300"
+                >
+                  Sign Up
+                </Link>
+              </>
+            )}
           </div>
         </div>
 

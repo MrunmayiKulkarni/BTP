@@ -1,12 +1,50 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../hooks/useAuth'; // Import the useAuth hook
 
 const LoginPage = () => {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [message, setMessage] = useState('');
+  const navigate = useNavigate();
+  const { login } = useAuth(); // Get the login function from context
+
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    setError('');
+    setMessage('');
+
+    try {
+      const response = await fetch('http://localhost:3001/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to login');
+      }
+
+      login(); // Set the authentication state to true
+      setMessage('Login successful! Redirecting to home...');
+      setTimeout(() => {
+        navigate('/home');
+      }, 2000);
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-900 to-purple-900 flex items-center justify-center p-6">
       <div className="w-full max-w-md p-8 space-y-6 bg-white/10 backdrop-blur-sm rounded-xl border border-white/20">
         <h2 className="text-3xl font-bold text-center text-white">Login</h2>
-        <form className="space-y-6">
+        <form className="space-y-6" onSubmit={handleLogin}>
           <div>
             <label
               htmlFor="email"
@@ -20,6 +58,8 @@ const LoginPage = () => {
               type="email"
               autoComplete="email"
               required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               className="w-full p-3 rounded-lg bg-white/20 border border-white/30 text-white placeholder-blue-200 focus:outline-none focus:ring-2 focus:ring-yellow-400"
             />
           </div>
@@ -36,9 +76,13 @@ const LoginPage = () => {
               type="password"
               autoComplete="current-password"
               required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
               className="w-full p-3 rounded-lg bg-white/20 border border-white/30 text-white placeholder-blue-200 focus:outline-none focus:ring-2 focus:ring-yellow-400"
             />
           </div>
+          {error && <p className="text-red-400 text-sm">{error}</p>}
+          {message && <p className="text-green-400 text-sm">{message}</p>}
           <div className="flex items-center justify-between">
             <div className="flex items-center">
               <input
@@ -55,12 +99,12 @@ const LoginPage = () => {
               </label>
             </div>
             <div className="text-sm">
-              <a
-                href="#"
+              <button
+                type="button"
                 className="font-medium text-yellow-400 hover:text-yellow-300"
               >
                 Forgot your password?
-              </a>
+              </button>
             </div>
           </div>
           <div>

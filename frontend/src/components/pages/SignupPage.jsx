@@ -1,28 +1,59 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 
 const SignupPage = () => {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [error, setError] = useState('');
+  const [message, setMessage] = useState('');
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      navigate('/home');
+    }
+  }, [navigate]);
+
+  const handleSignup = async (e) => {
+    e.preventDefault();
+    setError('');
+    setMessage('');
+
+    if (password !== confirmPassword) {
+      return setError('Passwords do not match');
+    }
+
+    try {
+      const response = await fetch('http://localhost:3001/signup', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to sign up');
+      }
+
+      setMessage('Signup successful! Redirecting to login...');
+      setTimeout(() => {
+        navigate('/');
+      }, 2000);
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-900 to-purple-900 flex items-center justify-center p-6">
       <div className="w-full max-w-md p-8 space-y-6 bg-white/10 backdrop-blur-sm rounded-xl border border-white/20">
         <h2 className="text-3xl font-bold text-center text-white">Sign up</h2>
-        <form className="space-y-6">
-          <div>
-            <label
-              htmlFor="username"
-              className="text-sm font-medium text-blue-200"
-            >
-              Username
-            </label>
-            <input
-              id="username"
-              name="username"
-              type="text"
-              autoComplete="username"
-              required
-              className="w-full p-3 rounded-lg bg-white/20 border border-white/30 text-white placeholder-blue-200 focus:outline-none focus:ring-2 focus:ring-yellow-400"
-            />
-          </div>
+        <form className="space-y-6" onSubmit={handleSignup}>
           <div>
             <label
               htmlFor="email"
@@ -36,6 +67,8 @@ const SignupPage = () => {
               type="email"
               autoComplete="email"
               required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               className="w-full p-3 rounded-lg bg-white/20 border border-white/30 text-white placeholder-blue-200 focus:outline-none focus:ring-2 focus:ring-yellow-400"
             />
           </div>
@@ -52,6 +85,8 @@ const SignupPage = () => {
               type="password"
               autoComplete="new-password"
               required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
               className="w-full p-3 rounded-lg bg-white/20 border border-white/30 text-white placeholder-blue-200 focus:outline-none focus:ring-2 focus:ring-yellow-400"
             />
           </div>
@@ -68,9 +103,13 @@ const SignupPage = () => {
               type="password"
               autoComplete="new-password"
               required
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
               className="w-full p-3 rounded-lg bg-white/20 border border-white/30 text-white placeholder-blue-200 focus:outline-none focus:ring-2 focus:ring-yellow-400"
             />
           </div>
+          {error && <p className="text-red-400 text-sm">{error}</p>}
+          {message && <p className="text-green-400 text-sm">{message}</p>}
           <div>
             <button
               type="submit"
@@ -83,7 +122,7 @@ const SignupPage = () => {
         <p className="text-sm text-center text-blue-200">
           Already have an account?{' '}
           <Link
-            to="/login"
+            to="/"
             className="font-medium text-yellow-400 hover:text-yellow-300"
           >
             Log in

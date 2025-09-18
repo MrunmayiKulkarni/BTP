@@ -10,12 +10,13 @@ import SignupPage from './components/pages/SignupPage';
 const AppRouter = () => {
   return (
     <BrowserRouter>
+      {/* NavBar has been removed from here */}
       <Routes>
-        <Route path="/" element={<HomePage />} />
+        <Route path="/" element={<LoginPage />} />
+        <Route path="/home" element={<HomePage />} />
         <Route path="/exercises" element={<ExercisesPage />} />
         <Route path="/workout" element={<WorkoutPage />} />
         <Route path="/history" element={<HistoryPage />} />
-        <Route path="/login" element={<LoginPage />} />
         <Route path="/signup" element={<SignupPage />} />
       </Routes>
     </BrowserRouter>

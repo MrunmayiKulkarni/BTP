@@ -3,8 +3,16 @@ import { TrendingUp, BarChart3 } from 'lucide-react';
 import BackButton from '../common/BackButton';
 import VolumeChart from '../charts/VolumeChart';
 import ProgressChart from '../charts/ProgressChart';
-import WorkoutSummary from '../charts/WorkoutSummary';
 import { useWorkoutData } from '../../hooks/useWorkoutData';
+
+const formatDate = (dateString) => {
+  const date = new Date(dateString);
+  return date.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric'
+  });
+};
 
 const HistoryPage = () => {
   const [viewMode, setViewMode] = useState('volume');
@@ -95,8 +103,35 @@ const HistoryPage = () => {
           </div>
         )}
 
-        <div className="mt-6">
-          <WorkoutSummary workouts={recentWorkouts} />
+        <div className="mt-8">
+          <h2 className="text-2xl font-bold text-white mb-4">Recent Workouts</h2>
+          <div className="space-y-4">
+            {recentWorkouts.map((workout) => (
+              <div key={workout.id} className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
+                <div className="flex justify-between items-center mb-3">
+                  <div>
+                    <h4 className="font-bold text-white">{workout.exercise}</h4>
+                    <p className="text-xs text-blue-200">{formatDate(workout.date)} - {workout.day}</p>
+                  </div>
+                  <span className="text-xs bg-yellow-500 text-black font-bold px-2 py-1 rounded">
+                    Vol: {workout.totalVolume?.toFixed(1)}kg
+                  </span>
+                </div>
+                <div className="pl-4 text-sm space-y-1 text-blue-100 border-l-2 border-blue-500/50">
+                  {workout.details && workout.details.length > 0 ? (
+                    workout.details.map((set, setIndex) => (
+                      <div key={setIndex} className="grid grid-cols-3 gap-2 items-center">
+                        <span className="text-gray-400">Set {setIndex + 1}</span>
+                        <span className="col-span-2 font-mono">{set.weight} kg × {set.reps} reps</span>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="font-mono">{workout.sets} sets of {workout.reps} reps at {workout.weight}kg</p>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>

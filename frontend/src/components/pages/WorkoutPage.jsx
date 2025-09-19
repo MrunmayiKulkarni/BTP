@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import BackButton from '../common/BackButton';
 import { useWorkoutData } from '../../hooks/useWorkoutData';
@@ -28,28 +28,47 @@ const WorkoutPage = () => {
   const selectedDay = searchParams.get('day');
   const selectedExercise = searchParams.get('exercise');
 
-  const [sets, setSets] = useState('');
-  const [reps, setReps] = useState('');
-  const [weight, setWeight] = useState('');
+  const [numSets, setNumSets] = useState('');
+  const [setDetails, setSetDetails] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const { addWorkout, getExerciseProgress } = useWorkoutData();
   const progressData = getExerciseProgress(selectedExercise);
 
-  const validateInput = () => {
-    const setsNum = parseInt(sets);
-    const repsNum = parseInt(reps);
-    const weightNum = parseFloat(weight);
+  useEffect(() => {
+    const sets = parseInt(numSets);
+    if (sets > 0 && sets <= VALIDATION.maxSets) {
+      setSetDetails(currentDetails => {
+        const newDetails = Array.from({ length: sets }, (_, i) => {
+          return currentDetails[i] || { reps: '', weight: '' };
+        });
+        return newDetails;
+      });
+    } else {
+      setSetDetails([]);
+    }
+  }, [numSets]);
 
-    return (
-      setsNum >= VALIDATION.minSets && setsNum <= VALIDATION.maxSets &&
-      repsNum >= VALIDATION.minReps && repsNum <= VALIDATION.maxReps &&
-      weightNum >= VALIDATION.minWeight && weightNum <= VALIDATION.maxWeight
-    );
+  const handleDetailChange = (index, field, value) => {
+    const newDetails = [...setDetails];
+    newDetails[index][field] = value;
+    setSetDetails(newDetails);
+  };
+
+  const validateInput = () => {
+    if (setDetails.length === 0) return false;
+    return setDetails.every(detail => {
+      const repsNum = parseInt(detail.reps);
+      const weightNum = parseFloat(detail.weight);
+      return (
+        !isNaN(repsNum) && repsNum >= VALIDATION.minReps && repsNum <= VALIDATION.maxReps &&
+        !isNaN(weightNum) && weightNum >= VALIDATION.minWeight && weightNum <= VALIDATION.maxWeight
+      );
+    });
   };
 
   const handleSubmit = async () => {
-    if (!sets || !reps || !weight || !validateInput()) {
+    if (!validateInput()) {
       alert('Please enter valid values for all fields');
       return;
     }
@@ -57,10 +76,8 @@ const WorkoutPage = () => {
     setIsSubmitting(true);
     
     try {
-      await addWorkout(selectedExercise, sets, reps, weight, selectedDay);
-      setSets('');
-      setReps('');
-      setWeight('');
+      await addWorkout(selectedExercise, setDetails, selectedDay);
+      setNumSets('');
       alert('Workout logged successfully!');
     } catch (error) {
       alert('Failed to log workout. Please try again.');
@@ -86,8 +103,8 @@ const WorkoutPage = () => {
               <label className="block text-white font-semibold mb-2">Sets</label>
               <input
                 type="number"
-                value={sets}
-                onChange={(e) => setSets(e.target.value)}
+                value={numSets}
+                onChange={(e) => setNumSets(e.target.value)}
                 className="w-full p-3 rounded-lg bg-white/20 border border-white/30 text-white placeholder-blue-200 focus:outline-none focus:ring-2 focus:ring-yellow-400"
                 placeholder="Number of sets"
                 min={VALIDATION.minSets}
@@ -96,34 +113,36 @@ const WorkoutPage = () => {
               />
             </div>
 
-            <div>
-              <label className="block text-white font-semibold mb-2">Reps</label>
-              <input
-                type="number"
-                value={reps}
-                onChange={(e) => setReps(e.target.value)}
-                className="w-full p-3 rounded-lg bg-white/20 border border-white/30 text-white placeholder-blue-200 focus:outline-none focus:ring-2 focus:ring-yellow-400"
-                placeholder="Reps per set"
-                min={VALIDATION.minReps}
-                max={VALIDATION.maxReps}
-                disabled={isSubmitting}
-              />
-            </div>
-
-            <div>
-              <label className="block text-white font-semibold mb-2">Weight (kg)</label>
-              <input
-                type="number"
-                step="0.5"
-                value={weight}
-                onChange={(e) => setWeight(e.target.value)}
-                className="w-full p-3 rounded-lg bg-white/20 border border-white/30 text-white placeholder-blue-200 focus:outline-none focus:ring-2 focus:ring-yellow-400"
-                placeholder="Weight used"
-                min={VALIDATION.minWeight}
-                max={VALIDATION.maxWeight}
-                disabled={isSubmitting}
-              />
-            </div>
+            {setDetails.length > 0 && (
+              <div className="space-y-4 pt-4 border-t border-white/20 mt-6">
+                {setDetails.map((detail, index) => (
+                  <div key={index} className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+                    <span className="text-white font-medium md:text-right">Set {index + 1}</span>
+                    <input
+                      type="number"
+                      placeholder="Reps"
+                      value={detail.reps}
+                      onChange={(e) => handleDetailChange(index, 'reps', e.target.value)}
+                      className="w-full p-3 rounded-lg bg-white/20 border border-white/30 text-white placeholder-blue-200 focus:outline-none focus:ring-2 focus:ring-yellow-400"
+                      min={VALIDATION.minReps}
+                      max={VALIDATION.maxReps}
+                      disabled={isSubmitting}
+                    />
+                    <input
+                      type="number"
+                      step="0.5"
+                      placeholder="Weight (kg)"
+                      value={detail.weight}
+                      onChange={(e) => handleDetailChange(index, 'weight', e.target.value)}
+                      className="w-full p-3 rounded-lg bg-white/20 border border-white/30 text-white placeholder-blue-200 focus:outline-none focus:ring-2 focus:ring-yellow-400"
+                      min={VALIDATION.minWeight}
+                      max={VALIDATION.maxWeight}
+                      disabled={isSubmitting}
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
 
             <button
               onClick={handleSubmit}
@@ -139,12 +158,31 @@ const WorkoutPage = () => {
         <div className="mt-6 bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20">
           <h3 className="text-white font-semibold mb-4">Previous Records</h3>
           {progressData && progressData.length > 0 ? (
-            progressData.slice(-3).map((record, index) => (
-              <div key={index} className="flex justify-between text-sm text-blue-200 mb-2">
-                <span>{formatDate(record.date)}</span>
-                <span>{record.weight}kg × {record.reps} reps</span>
-              </div>
-            ))
+            <div className="space-y-4">
+              {progressData.slice(-3).reverse().map((record) => (
+                <div key={record.id} className="text-sm text-blue-200 border-b border-white/10 pb-3 last:border-b-0">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="font-semibold text-white">{formatDate(record.date)}</span>
+                    <span className="text-xs bg-white/20 px-2 py-1 rounded">
+                      Vol: {record.volume?.toFixed(1)}kg
+                    </span>
+                  </div>
+                  <div className="pl-4 text-xs space-y-1 text-blue-100">
+                    {record.details && record.details.length > 0 ? (
+                      record.details.map((set, setIndex) => (
+                        <div key={setIndex} className="grid grid-cols-3 gap-2">
+                          <span className="text-gray-400">Set {setIndex + 1}</span>
+                          <span className="col-span-2">{set.weight} kg × {set.reps} reps</span>
+                        </div>
+                      ))
+                    ) : (
+                      // Fallback for old data without 'details'
+                      <p>{record.sets} sets of {record.reps} reps at {record.weight}kg</p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
           ) : (
             <p className="text-gray-400 text-sm">No previous records</p>
           )}

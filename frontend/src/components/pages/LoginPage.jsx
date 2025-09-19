@@ -34,7 +34,7 @@ const LoginPage = () => {
         throw new Error(data.message || 'Failed to login');
       }
 
-      login(); // Set the authentication state to true
+      login(data.token); // Set the authentication state with the token
       setMessage('Login successful! Redirecting to home...');
       setTimeout(() => {
         navigate('/home');

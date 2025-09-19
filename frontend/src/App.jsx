@@ -6,13 +6,13 @@ import './styles/globals.css';
 
 function App() {
   return (
-    <AppProvider>
-      <AuthProvider>
+    <AuthProvider>
+      <AppProvider>
         <div className="App">
           <AppRouter />
         </div>
-      </AuthProvider>
-    </AppProvider>
+      </AppProvider>
+    </AuthProvider>
   );
 }
 

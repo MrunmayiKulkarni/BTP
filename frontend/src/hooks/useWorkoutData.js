@@ -1,65 +1,80 @@
-import React, { createContext, useContext, useState } from 'react';
-import { getTotalVolumeByDay } from '../utils/calculations';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { useAuth } from './useAuth'; // Import useAuth to get the token
 
 const WorkoutContext = createContext();
 
 export const AppProvider = ({ children }) => {
   const [workoutHistory, setWorkoutHistory] = useState([]);
+  const { token } = useAuth(); // Get the auth token
 
-  const addWorkout = (exercise, setDetails, day) => {
-    const parsedDetails = setDetails.map(s => ({
-      reps: parseInt(s.reps),
-      weight: parseFloat(s.weight)
-    }));
-
-    const totalVolume = parsedDetails.reduce((sum, set) => sum + (set.reps * set.weight), 0);
-
-    // Find the set with the highest weight for summary display compatibility
-    const bestSet = parsedDetails.reduce(
-        (best, current) => (current.weight > best.weight ? current : best),
-        parsedDetails[0] || { reps: 0, weight: 0 }
-    );
-
-    const workoutEntry = {
-      id: Date.now(),
-      date: new Date().toISOString().split('T')[0],
-      day,
-      exercise,
-      sets: parsedDetails.length,
-      reps: bestSet.reps, // For display compatibility
-      weight: bestSet.weight, // For display compatibility
-      details: parsedDetails, // The full data
-      totalVolume
+  // Fetch workout history from the server when the component mounts or token changes
+  useEffect(() => {
+    const fetchHistory = async () => {
+      if (token) {
+        try {
+          const response = await fetch('http://localhost:3001/api/workouts', {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+            },
+          });
+          if (response.ok) {
+            const data = await response.json();
+            setWorkoutHistory(data);
+          }
+        } catch (error) {
+          console.error('Failed to fetch workout history:', error);
+        }
+      }
     };
 
-    setWorkoutHistory(prev => [...prev, workoutEntry]);
-    return workoutEntry;
-  };
+    fetchHistory();
+  }, [token]);
 
+  // Add a new workout by sending it to the server
+  const addWorkout = useCallback(async (workoutData) => {
+    if (token) {
+      try {
+        const response = await fetch('http://localhost:3001/api/workouts', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify(workoutData),
+        });
+
+        if (response.ok) {
+          // Refetch history to include the new workout
+          const newHistoryResponse = await fetch('http://localhost:3001/api/workouts', {
+            headers: { 'Authorization': `Bearer ${token}` },
+          });
+          const newHistory = await newHistoryResponse.json();
+          setWorkoutHistory(newHistory);
+        }
+      } catch (error) {
+        console.error('Failed to add workout:', error);
+      }
+    }
+  }, [token]);
+
+  // These functions now operate on the state managed from the server
   const getExerciseProgress = (exercise) => {
-    const exerciseHistory = workoutHistory
-      .filter(entry => entry.exercise === exercise)
-      .sort((a, b) => new Date(a.date) - new Date(b.date));
-
-    return exerciseHistory.map(entry => ({
-      id: entry.id,
-      date: entry.date,
-      weight: entry.weight, // best set weight
-      volume: entry.totalVolume,
-      reps: entry.reps, // best set reps
-      sets: entry.sets,
-      details: entry.details, // Pass through the detailed set info
-    }));
+    // This logic would also ideally be moved to the backend for efficiency
+    return workoutHistory.filter(w => w.exercise_name === exercise);
   };
 
   const getVolumeData = () => {
-    return getTotalVolumeByDay(workoutHistory);
+    const volumeByDay = {};
+    workoutHistory.forEach(workout => {
+        const day = new Date(workout.workout_date).toLocaleDateString('en-US', { weekday: 'short' });
+        const totalVolume = workout.sets.reduce((acc, set) => acc + (set.reps * set.weight), 0);
+        volumeByDay[day] = (volumeByDay[day] || 0) + totalVolume;
+    });
+    return Object.entries(volumeByDay).map(([day, volume]) => ({ day, volume }));
   };
 
   const getRecentWorkouts = (limit = 5) => {
-    return workoutHistory
-      .slice(-limit)
-      .reverse();
+    return workoutHistory.slice(0, limit);
   };
 
   const value = {
@@ -67,7 +82,7 @@ export const AppProvider = ({ children }) => {
     addWorkout,
     getExerciseProgress,
     getVolumeData,
-    getRecentWorkouts
+    getRecentWorkouts,
   };
 
   return (

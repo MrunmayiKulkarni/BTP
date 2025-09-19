@@ -1,23 +1,24 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useCallback } from 'react';
 
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
-  // Check localStorage to persist login state across page refreshes
-  const [isAuthenticated, setIsAuthenticated] = useState(() => !!localStorage.getItem('user_authenticated'));
+  const [token, setToken] = useState(() => localStorage.getItem('authToken'));
 
-  const login = () => {
-    localStorage.setItem('user_authenticated', 'true');
-    setIsAuthenticated(true);
-  };
+  const login = useCallback((newToken) => {
+    localStorage.setItem('authToken', newToken);
+    setToken(newToken);
+  }, []);
 
-  const logout = () => {
-    localStorage.removeItem('user_authenticated');
-    setIsAuthenticated(false);
-  };
+  const logout = useCallback(() => {
+    localStorage.removeItem('authToken');
+    setToken(null);
+  }, []);
+
+  const isAuthenticated = !!token;
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, login, logout }}>
+    <AuthContext.Provider value={{ isAuthenticated, token, login, logout }}>
       {children}
     </AuthContext.Provider>
   );

@@ -3,7 +3,6 @@ import { useSearchParams } from 'react-router-dom';
 import BackButton from '../common/BackButton';
 import { useWorkoutData } from '../../hooks/useWorkoutData';
 
-// Inline date helper function to avoid import error
 const formatDate = (dateString) => {
   const date = new Date(dateString);
   return date.toLocaleDateString('en-US', {
@@ -13,7 +12,6 @@ const formatDate = (dateString) => {
   });
 };
 
-// Inline validation constants
 const VALIDATION = {
   maxSets: 20,
   maxReps: 50,
@@ -74,9 +72,19 @@ const WorkoutPage = () => {
     }
 
     setIsSubmitting(true);
-    
+
+    const workoutData = {
+      exercise_name: selectedExercise,
+      workout_date: new Date().toISOString().split('T')[0], // Today's date
+      sets: setDetails.map((detail, index) => ({
+        set_number: index + 1,
+        reps: parseInt(detail.reps),
+        weight: parseFloat(detail.weight),
+      })),
+    };
+
     try {
-      await addWorkout(selectedExercise, setDetails, selectedDay);
+      await addWorkout(workoutData);
       setNumSets('');
       alert('Workout logged successfully!');
     } catch (error) {
@@ -159,29 +167,27 @@ const WorkoutPage = () => {
           <h3 className="text-white font-semibold mb-4">Previous Records</h3>
           {progressData && progressData.length > 0 ? (
             <div className="space-y-4">
-              {progressData.slice(-3).reverse().map((record) => (
-                <div key={record.id} className="text-sm text-blue-200 border-b border-white/10 pb-3 last:border-b-0">
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="font-semibold text-white">{formatDate(record.date)}</span>
-                    <span className="text-xs bg-white/20 px-2 py-1 rounded">
-                      Vol: {record.volume?.toFixed(1)}kg
-                    </span>
-                  </div>
-                  <div className="pl-4 text-xs space-y-1 text-blue-100">
-                    {record.details && record.details.length > 0 ? (
-                      record.details.map((set, setIndex) => (
+              {progressData.slice(-3).reverse().map((record) => {
+                const totalVolume = record.sets.reduce((acc, set) => acc + (set.reps * set.weight), 0);
+                return (
+                  <div key={record.id} className="text-sm text-blue-200 border-b border-white/10 pb-3 last:border-b-0">
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="font-semibold text-white">{formatDate(record.workout_date)}</span>
+                      <span className="text-xs bg-white/20 px-2 py-1 rounded">
+                        Vol: {totalVolume.toFixed(1)}kg
+                      </span>
+                    </div>
+                    <div className="pl-4 text-xs space-y-1 text-blue-100">
+                      {record.sets.map((set, setIndex) => (
                         <div key={setIndex} className="grid grid-cols-3 gap-2">
-                          <span className="text-gray-400">Set {setIndex + 1}</span>
+                          <span className="text-gray-400">Set {set.set_number}</span>
                           <span className="col-span-2">{set.weight} kg × {set.reps} reps</span>
                         </div>
-                      ))
-                    ) : (
-                      // Fallback for old data without 'details'
-                      <p>{record.sets} sets of {record.reps} reps at {record.weight}kg</p>
-                    )}
+                      ))}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           ) : (
             <p className="text-gray-400 text-sm">No previous records</p>

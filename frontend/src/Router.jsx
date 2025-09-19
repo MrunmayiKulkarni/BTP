@@ -6,18 +6,20 @@ import WorkoutPage from './components/pages/WorkoutPage';
 import HistoryPage from './components/pages/HistoryPage';
 import LoginPage from './components/pages/LoginPage';
 import SignupPage from './components/pages/SignupPage';
+import ProtectedRoute from './components/common/ProtectedRoute';
 
 const AppRouter = () => {
   return (
     <BrowserRouter>
-      {/* NavBar has been removed from here */}
       <Routes>
         <Route path="/" element={<LoginPage />} />
-        <Route path="/home" element={<HomePage />} />
-        <Route path="/exercises" element={<ExercisesPage />} />
-        <Route path="/workout" element={<WorkoutPage />} />
-        <Route path="/history" element={<HistoryPage />} />
         <Route path="/signup" element={<SignupPage />} />
+
+        {/* Protected Routes */}
+        <Route path="/home" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
+        <Route path="/exercises" element={<ProtectedRoute><ExercisesPage /></ProtectedRoute>} />
+        <Route path="/workout" element={<ProtectedRoute><WorkoutPage /></ProtectedRoute>} />
+        <Route path="/history" element={<ProtectedRoute><HistoryPage /></ProtectedRoute>} />
       </Routes>
     </BrowserRouter>
   );

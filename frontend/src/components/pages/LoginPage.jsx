@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, Navigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth'; // Import the useAuth hook
 
 const LoginPage = () => {
@@ -8,7 +8,11 @@ const LoginPage = () => {
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
   const navigate = useNavigate();
-  const { login } = useAuth(); // Get the login function from context
+  const { login, isAuthenticated } = useAuth(); // Get the login function from context
+
+  if (isAuthenticated) {
+    return <Navigate to="/home" />;
+  }
 
   const handleLogin = async (e) => {
     e.preventDefault();

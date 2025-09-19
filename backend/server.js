@@ -1,6 +1,6 @@
 const express = require('express');
 const cors = require('cors');
-const fs = require('fs');
+const pool = require('./db'); // Import the MySQL connection pool
 
 const app = express();
 const port = 3001;
@@ -8,39 +8,41 @@ const port = 3001;
 app.use(cors());
 app.use(express.json());
 
-const DB_FILE = './db.json';
-
-// Initialize DB file if it doesn't exist
-if (!fs.existsSync(DB_FILE)) {
-  fs.writeFileSync(DB_FILE, JSON.stringify({ users: [] }));
-}
-
-app.post('/signup', (req, res) => {
+app.post('/signup', async (req, res) => {
   const { email, password } = req.body;
-  const db = JSON.parse(fs.readFileSync(DB_FILE));
 
-  const userExists = db.users.some(user => user.email === email);
+  try {
+    // Check if user already exists
+    const [existingUsers] = await pool.query('SELECT * FROM users WHERE email = ?', [email]);
+    if (existingUsers.length > 0) {
+      return res.status(400).json({ message: 'User already exists' });
+    }
 
-  if (userExists) {
-    return res.status(400).json({ message: 'User already exists' });
+    // Insert new user
+    await pool.query('INSERT INTO users (email, password) VALUES (?, ?)', [email, password]);
+
+    res.status(201).json({ message: 'User created successfully' });
+  } catch (error) {
+    console.error('Signup error:', error);
+    res.status(500).json({ message: 'Internal server error' });
   }
-
-  db.users.push({ email, password });
-  fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2));
-
-  res.status(201).json({ message: 'User created successfully' });
 });
 
-app.post('/login', (req, res) => {
+app.post('/login', async (req, res) => {
   const { email, password } = req.body;
-  const db = JSON.parse(fs.readFileSync(DB_FILE));
 
-  const user = db.users.find(user => user.email === email && user.password === password);
+  try {
+    // Find user
+    const [users] = await pool.query('SELECT * FROM users WHERE email = ? AND password = ?', [email, password]);
 
-  if (user) {
-    res.status(200).json({ message: 'Login successful' });
-  } else {
-    res.status(401).json({ message: 'Invalid credentials' });
+    if (users.length > 0) {
+      res.status(200).json({ message: 'Login successful' });
+    } else {
+      res.status(401).json({ message: 'Invalid credentials' });
+    }
+  } catch (error) {
+    console.error('Login error:', error);
+    res.status(500).json({ message: 'Internal server error' });
   }
 });
 

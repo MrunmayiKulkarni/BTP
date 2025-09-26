@@ -118,15 +118,16 @@ const HistoryPage = () => {
                   </span>
                 </div>
                 <div className="pl-4 text-sm space-y-1 text-blue-100 border-l-2 border-blue-500/50">
-                  {workout.details && workout.details.length > 0 ? (
-                    workout.details.map((set, setIndex) => (
-                      <div key={setIndex} className="grid grid-cols-3 gap-2 items-center">
-                        <span className="text-gray-400">Set {setIndex + 1}</span>
+                  {/* Check for the 'sets' array from the backend */}
+                  {workout.sets && Array.isArray(workout.sets) && workout.sets.length > 0 ? (
+                    workout.sets.map((set) => (
+                      <div key={set.set_number} className="grid grid-cols-3 gap-2 items-center">
+                        <span className="text-gray-400">Set {set.set_number}</span>
                         <span className="col-span-2 font-mono">{set.weight} kg × {set.reps} reps</span>
                       </div>
                     ))
                   ) : (
-                    <p className="font-mono">{workout.sets} sets of {workout.reps} reps at {workout.weight}kg</p>
+                    <p className="font-mono">Set details not available.</p>
                   )}
                 </div>
               </div>

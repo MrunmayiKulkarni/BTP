@@ -15,69 +15,75 @@ const HomePage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-900 to-purple-900 p-6">
-      <div className="max-w-4xl mx-auto">
-        <div className="flex justify-between items-center mb-8">
-          <Header
-            title="Gym Tracker Pro"
-            subtitle="Track your fitness journey and visualize your progress"
-          />
-          <div className="flex gap-4">
-            {isAuthenticated ? (
-              <button
-                onClick={handleLogout}
-                className="bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-xl transition-colors duration-300 flex items-center gap-2"
-              >
-                <LogOut size={18} />
-                Logout
-              </button>
-            ) : (
-              <>
-                <Link
-                  to="/"
-                  className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-xl transition-colors duration-300"
+    <div 
+      className="relative min-h-screen text-white bg-cover bg-center p-6"
+      style={{ backgroundImage: "url('https://images.unsplash.com/photo-1571902943202-507ec2618e8f?q=80&w=1975&auto=format&fit=crop')" }}
+    >
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm"></div>
+      <div className="relative z-10 max-w-4xl mx-auto">
+        <div className="max-w-4xl mx-auto">
+          <div className="flex justify-between items-center mb-8">
+            <Header
+              title="Gym Tracker Pro"
+              subtitle="Track your fitness journey and visualize your progress"
+            />
+            <div className="flex gap-4">
+              {isAuthenticated ? (
+                <button
+                  onClick={handleLogout}
+                  className="bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-xl transition-colors duration-300 flex items-center gap-2"
                 >
-                  Login
-                </Link>
-                <Link
-                  to="/signup"
-                  className="bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 px-4 rounded-xl transition-colors duration-300"
-                >
-                  Sign Up
-                </Link>
-              </>
-            )}
+                  <LogOut size={18} />
+                  Logout
+                </button>
+              ) : (
+                <>
+                  <Link
+                    to="/"
+                    className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-xl transition-colors duration-300"
+                  >
+                    Login
+                  </Link>
+                  <Link
+                    to="/signup"
+                    className="bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 px-4 rounded-xl transition-colors duration-300"
+                  >
+                    Sign Up
+                  </Link>
+                </>
+              )}
+            </div>
           </div>
-        </div>
 
-        <div className="grid gap-4 mb-8">
-          {Object.keys(trainingDays).map((day) => (
+          <div className="grid gap-4 mb-8">
+            {Object.keys(trainingDays).map((day) => (
+              <Link
+                key={day}
+                to={`/exercises?day=${day}`}
+                className="bg-white/10 backdrop-blur-sm rounded-xl p-6 cursor-pointer hover:bg-white/20 transition-all duration-300 border border-white/20 block"
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-xl font-semibold text-white mb-2">{day}</h3>
+                    <p className="text-blue-200">{trainingDays[day].length} exercises</p>
+                  </div>
+                  <div className="text-yellow-400">
+                    <Dumbbell size={24} />
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+
+          <div className="flex gap-4">
             <Link
-              key={day}
-              to={`/exercises?day=${day}`}
-              className="bg-white/10 backdrop-blur-sm rounded-xl p-6 cursor-pointer hover:bg-white/20 transition-all duration-300 border border-white/20 block"
+              to="/history"
+              className="flex-1 bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-xl transition-colors duration-300 flex items-center justify-center gap-2"
             >
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-xl font-semibold text-white mb-2">{day}</h3>
-                  <p className="text-blue-200">{trainingDays[day].length} exercises</p>
-                </div>
-                <div className="text-yellow-400">
-                  <Dumbbell size={24} />
-                </div>
-              </div>
+              <History size={20} />
+              View Progress
             </Link>
-          ))}
-        </div>
-
-        <div className="flex gap-4">
-          <Link
-            to="/history"
-            className="flex-1 bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-xl transition-colors duration-300 flex items-center justify-center gap-2"
-          >
-            <History size={20} />
-            View Progress
-          </Link>
+          </div>
         </div>
       </div>
     </div>

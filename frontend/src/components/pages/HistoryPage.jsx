@@ -30,20 +30,26 @@ const HistoryPage = () => {
 
   if (workoutHistory.length === 0) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-900 to-purple-900 p-6">
-        <div className="max-w-6xl mx-auto">
-          <div className="flex items-center gap-4 mb-6">
-            <BackButton to="/" />
-            <h1 className="text-3xl font-bold text-white flex items-center gap-3">
-              <TrendingUp className="text-yellow-400" />
-              Progress Tracker
-            </h1>
-          </div>
-          
-          <div className="text-center py-12">
-            <BarChart3 className="mx-auto text-gray-400 mb-4" size={48} />
-            <p className="text-gray-300 text-lg">No workout data yet</p>
-            <p className="text-gray-400">Start logging your workouts to see progress!</p>
+      <div 
+        className="relative min-h-screen text-white bg-cover bg-center p-6"
+        style={{ backgroundImage: "url('https://images.unsplash.com/photo-1571902943202-507ec2618e8f?q=80&w=1975&auto=format&fit=crop')" }}
+      >
+        <div className="absolute inset-0 bg-black/60 backdrop-blur-sm"></div>
+        <div className="relative z-10 max-w-6xl mx-auto">
+          <div className="max-w-6xl mx-auto">
+            <div className="flex items-center gap-4 mb-6">
+              <BackButton to="/home" />
+              <h1 className="text-3xl font-bold text-white flex items-center gap-3">
+                <TrendingUp className="text-yellow-400" />
+                Progress Tracker
+              </h1>
+            </div>
+            
+            <div className="text-center py-20 bg-white/5 rounded-2xl backdrop-blur-sm border border-white/10">
+              <BarChart3 className="mx-auto text-gray-400 mb-4" size={48} />
+              <h2 className="text-white text-2xl font-semibold mb-2">No Workout Data Yet</h2>
+              <p className="text-gray-300">Start logging your workouts to see your progress here!</p>
+            </div>
           </div>
         </div>
       </div>
@@ -51,87 +57,93 @@ const HistoryPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-900 to-purple-900 p-6">
-      <div className="max-w-6xl mx-auto">
-        <div className="flex items-center gap-4 mb-6">
-          <BackButton to="/" />
-          <h1 className="text-3xl font-bold text-white flex items-center gap-3">
-            <TrendingUp className="text-yellow-400" />
-            Progress Tracker
-          </h1>
-        </div>
-
-        <div className="flex gap-4 mb-6">
-          <button
-            onClick={() => setViewMode('volume')}
-            className={`px-4 py-2 rounded-lg font-semibold transition-colors ${
-              viewMode === 'volume' 
-                ? 'bg-yellow-500 text-black' 
-                : 'bg-white/20 text-white hover:bg-white/30'
-            }`}
-          >
-            Total Volume
-          </button>
-          <button
-            onClick={() => setViewMode('exercises')}
-            className={`px-4 py-2 rounded-lg font-semibold transition-colors ${
-              viewMode === 'exercises' 
-                ? 'bg-yellow-500 text-black' 
-                : 'bg-white/20 text-white hover:bg-white/30'
-            }`}
-          >
-            Exercise Progress
-          </button>
-        </div>
-
-        {viewMode === 'volume' && (
-          <VolumeChart data={volumeData} />
-        )}
-
-        {viewMode === 'exercises' && (
-          <div className="space-y-6">
-            {uniqueExercises.slice(0, 3).map((exercise) => {
-              const progressData = getExerciseProgress(exercise);
-              return (
-                <ProgressChart 
-                  key={exercise}
-                  data={progressData}
-                  exercise={exercise}
-                />
-              );
-            })}
+    <div 
+      className="relative min-h-screen text-white bg-cover bg-center p-6"
+      style={{ backgroundImage: "url('https://images.unsplash.com/photo-1571902943202-507ec2618e8f?q=80&w=1975&auto=format&fit=crop')" }}
+    >
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm"></div>
+      <div className="relative z-10 max-w-6xl mx-auto">
+        <div className="max-w-6xl mx-auto">
+          <div className="flex items-center gap-4 mb-6">
+            <BackButton to="/home" />
+            <h1 className="text-3xl font-bold text-white flex items-center gap-3">
+              <TrendingUp className="text-yellow-400" />
+              Progress Tracker
+            </h1>
           </div>
-        )}
-
-        <div className="mt-8">
-          <h2 className="text-2xl font-bold text-white mb-4">Recent Workouts</h2>
-          <div className="space-y-4">
-            {recentWorkouts.map((workout) => (
-              <div key={workout.id} className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
-                <div className="flex justify-between items-center mb-3">
-                  <div>
-                    <h4 className="font-bold text-white">{workout.exercise}</h4>
-                    <p className="text-xs text-blue-200">{formatDate(workout.date)} - {workout.day}</p>
+  
+          <div className="flex gap-2 mb-6 p-1 bg-black/20 rounded-xl w-min">
+            <button
+              onClick={() => setViewMode('volume')}
+              className={`px-4 py-2 rounded-lg font-semibold transition-all duration-300 ${
+                viewMode === 'volume' 
+                  ? 'bg-yellow-500 text-black shadow-lg shadow-yellow-500/20' 
+                  : 'bg-transparent text-white hover:bg-white/10'
+              }`}
+            >
+              Total Volume
+            </button>
+            <button
+              onClick={() => setViewMode('exercises')}
+              className={`px-4 py-2 rounded-lg font-semibold transition-all duration-300 ${
+                viewMode === 'exercises' 
+                  ? 'bg-yellow-500 text-black shadow-lg shadow-yellow-500/20' 
+                  : 'bg-transparent text-white hover:bg-white/10'
+              }`}
+            >
+              Exercise Progress
+            </button>
+          </div>
+  
+          {viewMode === 'volume' && (
+            <VolumeChart data={volumeData} />
+          )}
+  
+          {viewMode === 'exercises' && (
+            <div className="space-y-6">
+              {uniqueExercises.slice(0, 3).map((exercise) => {
+                const progressData = getExerciseProgress(exercise);
+                return (
+                  <ProgressChart 
+                    key={exercise}
+                    data={progressData}
+                    exercise={exercise}
+                  />
+                );
+              })}
+            </div>
+          )}
+  
+          <div className="mt-8">
+            <h2 className="text-2xl font-bold text-white mb-4">Recent Workouts</h2>
+            <div className="space-y-4">
+              {recentWorkouts.map((workout) => (
+                <div key={workout.id} className="bg-white/10 backdrop-blur-md rounded-xl p-4 border border-white/20 transition-all duration-300 hover:bg-white/20 hover:border-white/30 hover:scale-[1.02]">
+                  <div className="flex justify-between items-center mb-3">
+                    <div>
+                      <h4 className="font-bold text-white">{workout.exercise_name}</h4>
+                      <p className="text-xs text-blue-200">{formatDate(workout.workout_date)}</p>
+                    </div>
+                    <span className="text-xs bg-yellow-500 text-black font-bold px-2 py-1 rounded">
+                      Vol: {workout.totalVolume?.toFixed(1)}kg
+                    </span>
                   </div>
-                  <span className="text-xs bg-yellow-500 text-black font-bold px-2 py-1 rounded">
-                    Vol: {workout.totalVolume?.toFixed(1)}kg
-                  </span>
+                  <div className="pl-4 text-sm space-y-1 text-blue-100 border-l-2 border-blue-500/50">
+                    {/* Check for the 'sets' array from the backend */}
+                    {workout.sets && Array.isArray(workout.sets) && workout.sets.length > 0 ? (
+                      workout.sets.map((set) => (
+                        <div key={set.set_number} className="grid grid-cols-3 gap-2 items-center">
+                          <span className="text-gray-400">Set {set.set_number}</span>
+                          <span className="col-span-2 font-mono">{set.weight} kg × {set.reps} reps</span>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="font-mono">Set details not available.</p>
+                    )}
+                  </div>
                 </div>
-                <div className="pl-4 text-sm space-y-1 text-blue-100 border-l-2 border-blue-500/50">
-                  {/* Check for the 'sets' array from the backend */}
-                  {workout.sets && Array.isArray(workout.sets) && workout.sets.length > 0 ? (
-                    workout.sets.map((set) => (
-                      <div key={set.set_number} className="grid grid-cols-3 gap-2 items-center">
-                        <span className="text-gray-400">Set {set.set_number}</span>
-                        <span className="col-span-2 font-mono">{set.weight} kg × {set.reps} reps</span>
-                      </div>
-                    ))
-                  ) : (
-                    <p className="font-mono">Set details not available.</p>
-                  )}
-                </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         </div>
       </div>

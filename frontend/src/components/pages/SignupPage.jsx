@@ -42,7 +42,7 @@ const SignupPage = () => {
 
       setMessage('Signup successful! Redirecting to login...');
       setTimeout(() => {
-        navigate('/');
+        navigate('/login');
       }, 2000);
     } catch (err) {
       setError(err.message);
@@ -50,8 +50,12 @@ const SignupPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-900 to-purple-900 flex items-center justify-center p-6">
-      <div className="w-full max-w-md p-8 space-y-6 bg-white/10 backdrop-blur-sm rounded-xl border border-white/20">
+    <div 
+      className="relative min-h-screen flex items-center justify-center p-6 bg-cover bg-center"
+      style={{ backgroundImage: "url('https://images.unsplash.com/photo-1571902943202-507ec2618e8f?q=80&w=1975&auto=format&fit=crop')" }}
+    >
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm"></div>
+      <div className="relative z-10 w-full max-w-md p-8 space-y-6 bg-white/10 backdrop-blur-sm rounded-xl border border-white/20">
         <h2 className="text-3xl font-bold text-center text-white">Sign up</h2>
         <form className="space-y-6" onSubmit={handleSignup}>
           <div>
@@ -122,7 +126,7 @@ const SignupPage = () => {
         <p className="text-sm text-center text-blue-200">
           Already have an account?{' '}
           <Link
-            to="/"
+            to="/login"
             className="font-medium text-yellow-400 hover:text-yellow-300"
           >
             Log in

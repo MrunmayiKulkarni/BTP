@@ -18,7 +18,9 @@ const VALIDATION = {
   maxWeight: 500,
   minSets: 1,
   minReps: 1,
-  minWeight: 0
+  minWeight: 0,
+  maxCalories: 10000,
+  maxSteps: 100000
 };
 
 const WorkoutPage = () => {
@@ -28,6 +30,8 @@ const WorkoutPage = () => {
 
   const [numSets, setNumSets] = useState('');
   const [setDetails, setSetDetails] = useState([]);
+  const [calories, setCalories] = useState('');
+  const [steps, setSteps] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const { addWorkout, getExerciseProgress } = useWorkoutData();
@@ -54,8 +58,7 @@ const WorkoutPage = () => {
   };
 
   const validateInput = () => {
-    if (setDetails.length === 0) return false;
-    return setDetails.every(detail => {
+    const setsValid = setDetails.length > 0 && setDetails.every(detail => {
       const repsNum = parseInt(detail.reps);
       const weightNum = parseFloat(detail.weight);
       return (
@@ -63,6 +66,14 @@ const WorkoutPage = () => {
         !isNaN(weightNum) && weightNum >= VALIDATION.minWeight && weightNum <= VALIDATION.maxWeight
       );
     });
+
+    const caloriesNum = parseInt(calories);
+    const stepsNum = parseInt(steps);
+
+    const activityValid = !isNaN(caloriesNum) && caloriesNum > 0 && caloriesNum <= VALIDATION.maxCalories &&
+                          !isNaN(stepsNum) && stepsNum > 0 && stepsNum <= VALIDATION.maxSteps;
+
+    return setsValid && activityValid;
   };
 
   const handleSubmit = async () => {
@@ -79,13 +90,17 @@ const WorkoutPage = () => {
       sets: setDetails.map((detail, index) => ({
         set_number: index + 1,
         reps: parseInt(detail.reps),
-        weight: parseFloat(detail.weight),
+        weight: parseFloat(detail.weight)
       })),
+      calories: parseInt(calories),
+      steps: parseInt(steps)
     };
 
     try {
       await addWorkout(workoutData);
       setNumSets('');
+      setCalories('');
+      setSteps('');
       alert('Workout logged successfully!');
     } catch (error) {
       alert('Failed to log workout. Please try again.');
@@ -156,6 +171,35 @@ const WorkoutPage = () => {
                   ))}
                 </div>
               )}
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-white/20 mt-6">
+                <div>
+                  <label className="block text-white font-semibold mb-2">Calories</label>
+                  <input
+                    type="number"
+                    value={calories}
+                    onChange={(e) => setCalories(e.target.value)}
+                    className="w-full p-3 rounded-lg bg-white/20 border border-white/30 text-white placeholder-blue-200 focus:outline-none focus:ring-2 focus:ring-yellow-400"
+                    placeholder="Calories consumed"
+                    min="0"
+                    max={VALIDATION.maxCalories}
+                    disabled={isSubmitting}
+                  />
+                </div>
+                <div>
+                  <label className="block text-white font-semibold mb-2">Steps</label>
+                  <input
+                    type="number"
+                    value={steps}
+                    onChange={(e) => setSteps(e.target.value)}
+                    className="w-full p-3 rounded-lg bg-white/20 border border-white/30 text-white placeholder-blue-200 focus:outline-none focus:ring-2 focus:ring-yellow-400"
+                    placeholder="Number of steps"
+                    min="0"
+                    max={VALIDATION.maxSteps}
+                    disabled={isSubmitting}
+                  />
+                </div>
+              </div>
   
               <button
                 onClick={handleSubmit}
@@ -177,10 +221,18 @@ const WorkoutPage = () => {
                   return (
                     <div key={record.id} className="text-sm text-blue-200 border-b border-white/10 pb-3 last:border-b-0">
                       <div className="flex justify-between items-center mb-2">
-                        <span className="font-semibold text-white">{formatDate(record.workout_date)}</span>
-                        <span className="text-xs bg-white/20 px-2 py-1 rounded">
-                          Vol: {totalVolume.toFixed(1)}kg
-                        </span>
+                        <span className="font-semibold text-white">{formatDate(record.workout_date)}</span>                        
+                        <div className="flex gap-2 text-xs">
+                          <span className="bg-white/20 px-2 py-1 rounded">
+                            Vol: {totalVolume.toFixed(1)}kg
+                          </span>
+                          <span className="bg-green-500/20 text-green-300 px-2 py-1 rounded">
+                            Cals: {record.calories}
+                          </span>
+                          <span className="bg-blue-500/20 text-blue-300 px-2 py-1 rounded">
+                            Steps: {record.steps}
+                          </span>
+                        </div>
                       </div>
                       <div className="pl-4 text-xs space-y-1 text-blue-100">
                         {record.sets.map((set, setIndex) => (

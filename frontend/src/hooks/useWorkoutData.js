@@ -19,7 +19,12 @@ export const AppProvider = ({ children }) => {
           });
           if (response.ok) {
             const data = await response.json();
-            setWorkoutHistory(data);
+            // Add totalVolume to each workout for easier use in components
+            const historyWithVolume = data.map(workout => ({
+              ...workout,
+              totalVolume: workout.sets.reduce((acc, set) => acc + (set.reps * set.weight), 0)
+            })).sort((a, b) => new Date(b.workout_date) - new Date(a.workout_date));
+            setWorkoutHistory(historyWithVolume);
           }
         } catch (error) {
           console.error('Failed to fetch workout history:', error);
@@ -64,13 +69,15 @@ export const AppProvider = ({ children }) => {
   };
 
   const getVolumeData = () => {
-    const volumeByDay = {};
-    workoutHistory.forEach(workout => {
-        const day = new Date(workout.workout_date).toLocaleDateString('en-US', { weekday: 'short' });
-        const totalVolume = workout.sets.reduce((acc, set) => acc + (set.reps * set.weight), 0);
-        volumeByDay[day] = (volumeByDay[day] || 0) + totalVolume;
-    });
-    return Object.entries(volumeByDay).map(([day, volume]) => ({ day, volume }));
+    const workoutsByDate = workoutHistory.reduce((acc, workout) => {
+      const date = workout.workout_date;
+      if (!acc[date]) {
+        acc[date] = [];
+      }
+      acc[date].push(workout);
+      return acc;
+    }, {});
+    return Object.entries(workoutsByDate);
   };
 
   const getRecentWorkouts = (limit = 5) => {

@@ -96,7 +96,38 @@ const HistoryPage = () => {
           </div>
   
           {viewMode === 'volume' && (
-            <VolumeChart data={volumeData} />
+            <div className="space-y-6">
+              {volumeData.map(([date, workouts]) => (
+                <div key={date} className="bg-white/10 backdrop-blur-md rounded-xl p-4 border border-white/20">
+                  <h3 className="text-lg font-bold text-white mb-3 border-b border-white/20 pb-2">{formatDate(date)}</h3>
+                  <div className="space-y-4">
+                    {workouts.map(workout => (
+                      <div key={workout.id}>
+                        <div className="flex justify-between items-center mb-2">
+                          <h4 className="font-semibold text-yellow-400">{workout.exercise_name}</h4>
+                          <div className="flex gap-2 text-xs">
+                            <span className="bg-yellow-500/20 text-yellow-300 font-bold px-2 py-1 rounded">
+                              Vol: {workout.totalVolume?.toFixed(1)}kg
+                            </span>
+                          </div>
+                        </div>
+                        <div className="pl-4 text-sm space-y-1 text-blue-100 border-l-2 border-blue-500/50">
+                          {workout.sets?.map((set) => (
+                            <div key={set.set_number} className="grid grid-cols-3 gap-2 items-center">
+                              <span className="text-gray-400">Set {set.set_number}</span>
+                              <span className="col-span-2 font-mono">{set.weight} kg × {set.reps} reps</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+              {volumeData.length === 0 && (
+                 <p className="text-gray-400 text-center py-8">No workouts logged yet.</p>
+              )}
+            </div>
           )}
   
           {viewMode === 'exercises' && (
@@ -124,11 +155,19 @@ const HistoryPage = () => {
                       <h4 className="font-bold text-white">{workout.exercise_name}</h4>
                       <p className="text-xs text-blue-200">{formatDate(workout.workout_date)}</p>
                     </div>
-                    <span className="text-xs bg-yellow-500 text-black font-bold px-2 py-1 rounded">
-                      Vol: {workout.totalVolume?.toFixed(1)}kg
-                    </span>
+                    <div className="flex flex-col items-end gap-1 text-xs">
+                      <span className="bg-yellow-500/20 text-yellow-300 font-bold px-2 py-1 rounded w-full text-center">
+                        Vol: {workout.totalVolume?.toFixed(1)}kg
+                      </span>
+                      <span className="bg-green-500/20 text-green-300 font-bold px-2 py-1 rounded w-full text-center">
+                        Cals: {workout.calories}
+                      </span>
+                      <span className="bg-blue-500/20 text-blue-300 font-bold px-2 py-1 rounded w-full text-center">
+                        Steps: {workout.steps}
+                      </span>
+                    </div>
                   </div>
-                  <div className="pl-4 text-sm space-y-1 text-blue-100 border-l-2 border-blue-500/50">
+                  <div className="pl-4 mt-3 text-sm space-y-1 text-blue-100 border-l-2 border-blue-500/50">
                     {/* Check for the 'sets' array from the backend */}
                     {workout.sets && Array.isArray(workout.sets) && workout.sets.length > 0 ? (
                       workout.sets.map((set) => (

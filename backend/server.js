@@ -8,14 +8,26 @@ const port = 3001;
 
 const JWT_SECRET = 'your_super_secret_key'; // IMPORTANT: Use an environment variable in a real app
 
+// Use CORS and Express JSON middleware
 app.use(cors());
 app.use(express.json());
+
+// --- AUTH MIDDLEWARE ---
+const checkAuth = (req, res, next) => {
+  try {
+    const token = req.headers.authorization.split(" ")[1];
+    const decodedToken = jwt.verify(token, JWT_SECRET);
+    req.userData = { userId: decodedToken.userId };
+    next();
+  } catch (error) {
+    return res.status(401).json({ message: 'Authentication failed' });
+  }
+};
 
 // --- AUTH ENDPOINTS ---
 
 app.post('/signup', async (req, res) => {
   const { email, password } = req.body;
-  // In a real app, you should hash the password here
   try {
     const [existingUsers] = await pool.query('SELECT * FROM users WHERE email = ?', [email]);
     if (existingUsers.length > 0) {
@@ -35,8 +47,8 @@ app.post('/login', async (req, res) => {
     const [users] = await pool.query('SELECT * FROM users WHERE email = ? AND password = ?', [email, password]);
     if (users.length > 0) {
       const user = users[0];
-      const token = jwt.sign({ userId: user.id, email: user.email }, JWT_SECRET, { expiresIn: '1h' });
-      res.status(200).json({ message: 'Login successful', token });
+      const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: '1h' });
+      res.status(200).json({ token, user: { id: user.id, email: user.email } });
     } else {
       res.status(401).json({ message: 'Invalid credentials' });
     }
@@ -46,35 +58,34 @@ app.post('/login', async (req, res) => {
   }
 });
 
-// --- AUTH MIDDLEWARE ---
+// --- USER ENDPOINTS ---
 
-const checkAuth = (req, res, next) => {
+app.get('/api/user', checkAuth, async (req, res) => {
   try {
-    const token = req.headers.authorization.split(' ')[1]; // Authorization: 'Bearer TOKEN'
-    const decoded = jwt.verify(token, JWT_SECRET);
-    req.userData = { userId: decoded.userId };
-    next();
+    const [users] = await pool.query('SELECT id, email FROM users WHERE id = ?', [req.userData.userId]);
+    if (users.length > 0) {
+      res.status(200).json(users[0]);
+    } else {
+      res.status(404).json({ message: 'User not found' });
+    }
   } catch (error) {
-    return res.status(401).json({ message: 'Authentication failed' });
+    console.error(error);
+    res.status(500).json({ message: 'Fetching user data failed' });
   }
-};
+});
 
 // --- WORKOUT ENDPOINTS ---
 
-// GET all workouts for a user
 app.get('/api/workouts', checkAuth, async (req, res) => {
   try {
     const [workouts] = await pool.query(
-      'SELECT id, exercise_name, workout_date FROM workouts WHERE user_id = ? ORDER BY workout_date DESC',
+      'SELECT id, exercise_name, workout_date FROM workouts WHERE user_id = ? ORDER BY workout_date DESC, id DESC',
       [req.userData.userId]
     );
-
-    // For each workout, get its sets
     const workoutsWithSets = await Promise.all(workouts.map(async (workout) => {
       const [sets] = await pool.query('SELECT set_number, reps, weight FROM workout_sets WHERE workout_id = ? ORDER BY set_number ASC', [workout.id]);
       return { ...workout, sets };
     }));
-
     res.status(200).json(workoutsWithSets);
   } catch (error) {
     console.error(error);
@@ -82,38 +93,67 @@ app.get('/api/workouts', checkAuth, async (req, res) => {
   }
 });
 
-// POST a new workout
 app.post('/api/workouts', checkAuth, async (req, res) => {
   const { exercise_name, workout_date, sets } = req.body;
   const connection = await pool.getConnection();
-
   try {
     await connection.beginTransaction();
-
-    // 1. Insert the main workout entry
     const [workoutResult] = await connection.query(
       'INSERT INTO workouts (user_id, exercise_name, workout_date) VALUES (?, ?, ?)',
       [req.userData.userId, exercise_name, workout_date]
     );
     const workoutId = workoutResult.insertId;
-
-    // 2. Insert each set associated with the workout
     for (const set of sets) {
       await connection.query(
         'INSERT INTO workout_sets (workout_id, set_number, reps, weight) VALUES (?, ?, ?, ?)',
         [workoutId, set.set_number, set.reps, set.weight]
       );
     }
-
     await connection.commit();
     res.status(201).json({ message: 'Workout added successfully' });
-
   } catch (error) {
     await connection.rollback();
     console.error(error);
-    res.status(500).json({ message: 'Adding workout failed' });
+    res.status(500).json({ message: 'Failed to add workout' });
   } finally {
     connection.release();
+  }
+});
+
+// --- ACTIVITY ENDPOINTS (This is the missing part!) ---
+
+app.get('/api/activities', checkAuth, async (req, res) => {
+  try {
+    const [activities] = await pool.query(
+      'SELECT activity_date, calories, steps FROM daily_activities WHERE user_id = ? ORDER BY activity_date DESC',
+      [req.userData.userId]
+    );
+    res.status(200).json(activities);
+  } catch (error) {
+    console.error('Failed to fetch activities:', error);
+    res.status(500).json({ message: 'Fetching activities failed' });
+  }
+});
+
+app.post('/api/activities', checkAuth, async (req, res) => {
+  const { date, calories, steps } = req.body;
+  const userId = req.userData.userId;
+
+  if (!date || !calories || !steps) {
+    return res.status(400).json({ message: 'Missing required fields: date, calories, steps' });
+  }
+
+  try {
+    const sql = `
+      INSERT INTO daily_activities (user_id, activity_date, calories, steps)
+      VALUES (?, ?, ?, ?)
+      ON DUPLICATE KEY UPDATE calories = VALUES(calories), steps = VALUES(steps)
+    `;
+    await pool.query(sql, [userId, date, calories, steps]);
+    res.status(201).json({ message: 'Activity logged successfully' });
+  } catch (error) {
+    console.error('Failed to log activity:', error);
+    res.status(500).json({ message: 'Logging activity failed' });
   }
 });
 

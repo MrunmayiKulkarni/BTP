@@ -1,108 +1,127 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { useAuth } from './useAuth'; // Import useAuth to get the token
+import { useState, useEffect, useCallback } from 'react';
+import { useAuth } from './useAuth';
 
-const WorkoutContext = createContext();
-
-export const AppProvider = ({ children }) => {
+export const useWorkoutData = () => {
+  const { token } = useAuth();
   const [workoutHistory, setWorkoutHistory] = useState([]);
-  const { token } = useAuth(); // Get the auth token
+  const [activityHistory, setActivityHistory] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Fetch workout history from the server when the component mounts or token changes
-  useEffect(() => {
-    const fetchHistory = async () => {
-      if (token) {
-        try {
-          const response = await fetch('http://localhost:3001/api/workouts', {
-            headers: {
-              'Authorization': `Bearer ${token}`,
-            },
-          });
-          if (response.ok) {
-            const data = await response.json();
-            // Add totalVolume to each workout for easier use in components
-            const historyWithVolume = data.map(workout => ({
-              ...workout,
-              totalVolume: workout.sets.reduce((acc, set) => acc + (set.reps * set.weight), 0)
-            })).sort((a, b) => new Date(b.workout_date) - new Date(a.workout_date));
-            setWorkoutHistory(historyWithVolume);
-          }
-        } catch (error) {
-          console.error('Failed to fetch workout history:', error);
-        }
-      }
-    };
+  const fetchData = useCallback(async () => {
+    if (!token) return;
+    setIsLoading(true);
+    try {
+      const [workoutsRes, activitiesRes] = await Promise.all([
+        fetch('http://localhost:3001/api/workouts', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        }),
+        fetch('http://localhost:3001/api/activities', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        })
+      ]);
+      
+      const workouts = await workoutsRes.json();
+      const activities = await activitiesRes.json();
 
-    fetchHistory();
-  }, [token]);
+      setWorkoutHistory(Array.isArray(workouts) ? workouts : []);
+      setActivityHistory(Array.isArray(activities) ? activities : []);
 
-  // Add a new workout by sending it to the server
-  const addWorkout = useCallback(async (workoutData) => {
-    if (token) {
-      try {
-        const response = await fetch('http://localhost:3001/api/workouts', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
-          },
-          body: JSON.stringify(workoutData),
-        });
-
-        if (response.ok) {
-          // Refetch history to include the new workout
-          const newHistoryResponse = await fetch('http://localhost:3001/api/workouts', {
-            headers: { 'Authorization': `Bearer ${token}` },
-          });
-          const newHistory = await newHistoryResponse.json();
-          setWorkoutHistory(newHistory);
-        }
-      } catch (error) {
-        console.error('Failed to add workout:', error);
-      }
+    } catch (error) {
+      console.error("Failed to fetch data:", error);
+    } finally {
+      setIsLoading(false);
     }
   }, [token]);
 
-  // These functions now operate on the state managed from the server
-  const getExerciseProgress = (exercise) => {
-    // This logic would also ideally be moved to the backend for efficiency
-    return workoutHistory.filter(w => w.exercise_name === exercise);
-  };
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
-  const getVolumeData = () => {
-    const workoutsByDate = workoutHistory.reduce((acc, workout) => {
-      const date = workout.workout_date;
-      if (!acc[date]) {
-        acc[date] = [];
+  // Function to add a new workout and then refresh all data
+  const addWorkout = async (workoutData) => {
+    if (!token) return;
+    try {
+      const response = await fetch('http://localhost:3001/api/workouts', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify(workoutData),
+      });
+      if (response.ok) {
+        fetchData(); // Refresh all data after a successful post
       }
-      acc[date].push(workout);
-      return acc;
-    }, {});
-    return Object.entries(workoutsByDate);
+    } catch (error) {
+      console.error('Failed to add workout:', error);
+    }
   };
 
-  const getRecentWorkouts = (limit = 5) => {
-    return workoutHistory.slice(0, limit);
+  const getCombinedHistory = () => {
+    const combined = {};
+    workoutHistory.forEach(workout => {
+        const date = workout.workout_date.split('T')[0];
+        if (!combined[date]) {
+            combined[date] = { date, workouts: [], calories: null, steps: null };
+        }
+        const totalVolume = workout.sets.reduce((sum, set) => sum + set.reps * set.weight, 0);
+        combined[date].workouts.push({ ...workout, totalVolume });
+    });
+    activityHistory.forEach(activity => {
+        const date = activity.activity_date.split('T')[0];
+        if (!combined[date]) {
+            combined[date] = { date, workouts: [], calories: null, steps: null };
+        }
+        combined[date].calories = activity.calories;
+        combined[date].steps = activity.steps;
+    });
+    return Object.values(combined).sort((a, b) => new Date(b.date) - new Date(a.date));
   };
 
-  const value = {
-    workoutHistory,
-    addWorkout,
-    getExerciseProgress,
-    getVolumeData,
-    getRecentWorkouts,
+  const getUniqueExercises = () => {
+    return [...new Set(workoutHistory.map(w => w.exercise_name))].sort();
   };
 
-  return (
-    <WorkoutContext.Provider value={value}>
-      {children}
-    </WorkoutContext.Provider>
-  );
-};
+  const getExerciseHistoryForChart = (exerciseName) => {
+    const exerciseWorkouts = workoutHistory
+      .filter(w => w.exercise_name === exerciseName)
+      .sort((a, b) => new Date(a.workout_date) - new Date(b.workout_date));
 
-export const useWorkoutData = () => {
-  const context = useContext(WorkoutContext);
-  if (!context) {
-    throw new Error('useWorkoutData must be used within AppProvider');
-  }
-  return context;
+    let maxSets = 0;
+    exerciseWorkouts.forEach(w => {
+      if (w.sets.length > maxSets) {
+        maxSets = w.sets.length;
+      }
+    });
+
+    const repKeys = Array.from({ length: maxSets }, (_, i) => `Set ${i + 1} Reps`);
+    const weightKeys = Array.from({ length: maxSets }, (_, i) => `Set ${i + 1} Weight`);
+
+    const chartData = exerciseWorkouts.map(workout => {
+      const dataPoint = {
+        date: workout.workout_date.split('T')[0],
+      };
+      workout.sets.forEach(set => {
+        dataPoint[`Set ${set.set_number} Reps`] = set.reps;
+        dataPoint[`Set ${set.set_number} Weight`] = set.weight;
+      });
+      return dataPoint;
+    });
+
+    return { chartData, repKeys, weightKeys };
+  };
+  
+  // --- THIS FUNCTION IS NOW ADDED BACK ---
+  const getExerciseProgress = (exerciseName) => {
+    return workoutHistory.filter(w => w.exercise_name === exerciseName);
+  };
+
+  return { 
+    isLoading, 
+    addWorkout, // <-- Make sure addWorkout is exported for WorkoutPage
+    getCombinedHistory,
+    getUniqueExercises,
+    getExerciseHistoryForChart,
+    getExerciseProgress // <-- Add the missing function to the export list
+  };
 };

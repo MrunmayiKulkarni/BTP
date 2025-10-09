@@ -75,13 +75,20 @@ const HistoryPage = () => {
                     <div>
                         {uniqueExercises.length > 0 ? (
                             <>
-                                <select
-                                    value={selectedExercise}
-                                    onChange={(e) => setSelectedExercise(e.target.value)}
-                                    className="w-full p-3 mb-6 rounded-lg bg-white/20 border border-white/30 text-white focus:outline-none focus:ring-2 focus:ring-yellow-400"
-                                >
-                                    {uniqueExercises.map(ex => <option key={ex} value={ex}>{ex}</option>)}
-                                </select>
+                                <div className="relative mb-6">
+                                    <select
+                                        value={selectedExercise}
+                                        onChange={(e) => setSelectedExercise(e.target.value)}
+                                        className="appearance-none w-full p-3 pr-10 rounded-lg bg-black/20 border border-white/30 text-white focus:outline-none focus:ring-2 focus:ring-yellow-400"
+                                    >
+                                        {uniqueExercises.map(ex => (
+                                            <option key={ex} value={ex} className="bg-gray-800 text-white">{ex}</option>
+                                        ))}
+                                    </select>
+                                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-300">
+                                        <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+                                    </div>
+                                </div>
                                 {exerciseChartData && <ExerciseProgressChart data={exerciseChartData} />}
                             </>
                         ) : (

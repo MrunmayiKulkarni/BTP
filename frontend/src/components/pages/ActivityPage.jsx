@@ -12,6 +12,7 @@ const ActivityPage = () => {
   const [calories, setCalories] = useState('');
   const [steps, setSteps] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [activityDate, setActivityDate] = useState(new Date().toISOString().split('T')[0]);
   const { token } = useAuth(); // <-- GET the auth token
 
   const validateInput = () => {
@@ -30,7 +31,7 @@ const ActivityPage = () => {
 
     setIsSubmitting(true);
     const activityData = {
-      date: new Date().toISOString().split('T')[0], // Today's date in YYYY-MM-DD format
+      date: activityDate,
       calories: parseInt(calories),
       steps: parseInt(steps)
     };
@@ -66,7 +67,7 @@ const ActivityPage = () => {
   return (
     <div 
       className="relative min-h-screen text-white bg-cover bg-center p-6"
-      style={{ backgroundImage: "url('https://images.unsplash.com/photo-1571902943202-507ec2618e8f?q=80&w=1975&auto-format&fit=crop')" }}
+      style={{ backgroundImage: "url('https://images.unsplash.com/photo-1571902943202-507ec2618e8f?q=80&w=1975&auto=format&fit=crop')" }}
     >
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm"></div>
       <div className="relative z-10 max-w-lg mx-auto">
@@ -77,9 +78,21 @@ const ActivityPage = () => {
 
         <div className="bg-white/10 backdrop-blur-md rounded-xl p-8 border border-white/20">
           <p className="text-blue-200 mb-6 text-center">
-            Enter your total calories consumed and steps taken for today.
+            Enter your total calories consumed and steps taken for the day.
           </p>
           <div className="space-y-6">
+            <div>
+              <label className="flex items-center gap-2 text-white font-semibold mb-2">
+                Date
+              </label>
+              <input
+                type="date"
+                value={activityDate}
+                onChange={(e) => setActivityDate(e.target.value)}
+                className="w-full p-3 rounded-lg bg-white/20 border border-white/30 text-white placeholder-blue-200 focus:outline-none focus:ring-2 focus:ring-yellow-400"
+                disabled={isSubmitting}
+              />
+            </div>
             <div>
               <label className="flex items-center gap-2 text-white font-semibold mb-2">
                 <Flame className="text-yellow-400" /> Calories

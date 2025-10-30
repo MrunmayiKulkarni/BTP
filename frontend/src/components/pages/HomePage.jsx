@@ -1,13 +1,24 @@
-import React from 'react';
-import { Dumbbell, History, LogOut, Flame } from 'lucide-react'; // Removed unused 'Footprints'
+import React, { useState, useEffect } from 'react';
+import { Dumbbell, History, LogOut, Flame, User } from 'lucide-react'; // Removed unused 'Footprints'
 import { Link, useNavigate } from 'react-router-dom';
 import { trainingDays } from '../../data/trainingDays';
 import Header from '../common/Header';
 import { useAuth } from '../../hooks/useAuth';
 
 const HomePage = () => {
-  const { isAuthenticated, logout } = useAuth();
+  const { user, isAuthenticated, logout } = useAuth();
+  const [userName, setUserName] = useState('');
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (user) {
+      const storageKey = `userProfile_${user.id}`;
+      const savedProfile = localStorage.getItem(storageKey);
+      if (savedProfile) {
+        setUserName(JSON.parse(savedProfile).name);
+      }
+    }
+  }, [user]);
 
   const handleLogout = () => {
     logout();
@@ -23,18 +34,41 @@ const HomePage = () => {
       <div className="relative z-10 max-w-4xl mx-auto">
         <div className="flex justify-between items-center mb-8">
           <Header
-            title="Gym Tracker Pro"
-            subtitle="Track your fitness journey and visualize your progress"
+            title={userName ? `Welcome, ${userName}!` : "Gym Tracker Pro"}
+            subtitle={userName ? "Ready to crush your goals today?" : "Track your fitness journey and visualize your progress"}
           />
           <div className="flex gap-4">
-            {isAuthenticated && ( // Simplified check
-              <button
-                onClick={handleLogout}
-                className="bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-xl transition-colors duration-300 flex items-center gap-2"
-              >
-                <LogOut size={18} />
-                Logout
-              </button>
+            {isAuthenticated && (
+              <>
+                <Link
+                  to="/activity"
+                  className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-xl transition-colors duration-300 flex items-center justify-center gap-2 text-sm"
+                >
+                  <Flame size={16} />
+                  Activity
+                </Link>
+                <Link
+                  to="/history"
+                  className="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-xl transition-colors duration-300 flex items-center justify-center gap-2 text-sm"
+                >
+                  <History size={16} />
+                  Progress
+                </Link>
+                <Link
+                  to="/profile"
+                  className="bg-gray-600 hover:bg-gray-700 text-white font-semibold p-3 rounded-xl transition-colors duration-300 flex items-center justify-center"
+                  title="Profile"
+                >
+                  <User size={18} />
+                </Link>
+                <button
+                  onClick={handleLogout}
+                  className="bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-xl transition-colors duration-300 flex items-center gap-2"
+                >
+                  <LogOut size={18} />
+                  Logout
+                </button>
+              </>
             )}
           </div>
         </div>
@@ -59,22 +93,6 @@ const HomePage = () => {
           ))}
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Link
-            to="/activity"
-            className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-xl transition-colors duration-300 flex items-center justify-center gap-2"
-          >
-            <Flame size={20} />
-            Log Daily Activity
-          </Link>
-          <Link
-            to="/history"
-            className="bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-xl transition-colors duration-300 flex items-center justify-center gap-2"
-          >
-            <History size={20} />
-            View Progress
-          </Link>
-        </div>
       </div>
     </div>
   );

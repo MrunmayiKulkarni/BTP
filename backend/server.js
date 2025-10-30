@@ -125,7 +125,7 @@ app.post('/api/workouts', checkAuth, async (req, res) => {
 app.get('/api/activities', checkAuth, async (req, res) => {
   try {
     const [activities] = await pool.query(
-      'SELECT activity_date, calories, steps FROM daily_activities WHERE user_id = ? ORDER BY activity_date DESC',
+      'SELECT activity_date, calories, steps, energy FROM daily_activities WHERE user_id = ? ORDER BY activity_date DESC',
       [req.userData.userId]
     );
     res.status(200).json(activities);
@@ -136,20 +136,20 @@ app.get('/api/activities', checkAuth, async (req, res) => {
 });
 
 app.post('/api/activities', checkAuth, async (req, res) => {
-  const { date, calories, steps } = req.body;
+  const { date, calories, steps, energy } = req.body;
   const userId = req.userData.userId;
 
-  if (!date || !calories || !steps) {
-    return res.status(400).json({ message: 'Missing required fields: date, calories, steps' });
+  if (!date || calories === undefined || steps === undefined || energy === undefined) {
+    return res.status(400).json({ message: 'Missing required fields: date, calories, steps, energy' });
   }
 
   try {
     const sql = `
-      INSERT INTO daily_activities (user_id, activity_date, calories, steps)
-      VALUES (?, ?, ?, ?)
-      ON DUPLICATE KEY UPDATE calories = VALUES(calories), steps = VALUES(steps)
+      INSERT INTO daily_activities (user_id, activity_date, calories, steps, energy)
+      VALUES (?, ?, ?, ?, ?)
+      ON DUPLICATE KEY UPDATE calories = VALUES(calories), steps = VALUES(steps), energy = VALUES(energy)
     `;
-    await pool.query(sql, [userId, date, calories, steps]);
+    await pool.query(sql, [userId, date, calories, steps, energy]);
     res.status(201).json({ message: 'Activity logged successfully' });
   } catch (error) {
     console.error('Failed to log activity:', error);

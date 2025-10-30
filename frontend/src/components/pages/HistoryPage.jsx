@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { List, BarChart2, Activity, Flame, Footprints } from 'lucide-react';
+import { List, BarChart2, Activity, Flame, Footprints, BatteryCharging } from 'lucide-react';
 import BackButton from '../common/BackButton';
 import { useWorkoutData } from '../../hooks/useWorkoutData';
 import ActivityChart from '../charts/ActivityChart';
@@ -16,6 +16,13 @@ const formatDate = (dateString) => {
     if (date.toDateString() === yesterday.toDateString()) return 'Yesterday';
 
     return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+};
+
+const ENERGY_LEVELS = {
+    1: { label: 'Tired', color: 'bg-red-500' },
+    2: { label: 'Okay', color: 'bg-yellow-500' },
+    3: { label: 'Good', color: 'bg-blue-500' },
+    4: { label: 'Energized', color: 'bg-green-500' },
 };
 
 const HistoryPage = () => {
@@ -121,6 +128,12 @@ const ListView = ({ combinedData }) => {
                             {day.steps != null && (
                                 <div className="flex items-center gap-1.5 text-sm text-green-300">
                                     <Footprints size={16} /> {day.steps.toLocaleString()} steps
+                                </div>
+                            )}
+                            {day.energy != null && ENERGY_LEVELS[day.energy] && (
+                                <div className={`flex items-center gap-1.5 text-xs font-semibold px-2 py-1 rounded-full ${ENERGY_LEVELS[day.energy].color} text-black`}>
+                                    <BatteryCharging size={14} />
+                                    {ENERGY_LEVELS[day.energy].label}
                                 </div>
                             )}
                         </div>

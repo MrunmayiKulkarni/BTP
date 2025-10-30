@@ -10,6 +10,7 @@ import HistoryPage from './components/pages/HistoryPage';
 import LandingPage from './components/pages/LandingPage';
 import LoginPage from './components/pages/LoginPage';
 import SignupPage from './components/pages/SignupPage';
+import ProfilePage from './components/pages/ProfilePage';
 import ProtectedRoute from './components/common/ProtectedRoute';
 import ActivityPage from './components/pages/ActivityPage';
 
@@ -34,6 +35,11 @@ const AppContent = () => {
         <Route path="/" element={user && isAuthenticated ? <Navigate to="/home" replace /> : <LandingPage />} />
         <Route path="/login" element={user && isAuthenticated ? <Navigate to="/home" replace /> : <LoginPage />} />
         <Route path="/signup" element={user && isAuthenticated ? <Navigate to="/home" replace /> : <SignupPage />} />
+        <Route path="/profile" element={
+  <ProtectedRoute>
+    <ProfilePage />
+  </ProtectedRoute>
+} />
 
         <Route path="/home" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
         <Route path="/exercises" element={<ProtectedRoute><ExercisesPage /></ProtectedRoute>} />

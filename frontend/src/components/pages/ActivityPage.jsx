@@ -20,7 +20,8 @@ const ActivityPage = () => {
   const [steps, setSteps] = useState('');
   const [energy, setEnergy] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { token } = useAuth();
+  const [activityDate, setActivityDate] = useState(new Date().toISOString().split('T')[0]);
+  const { token } = useAuth(); // <-- GET the auth token
 
   const validateInput = () => {
     const caloriesNum = parseInt(calories);
@@ -39,7 +40,7 @@ const ActivityPage = () => {
 
     setIsSubmitting(true);
     const activityData = {
-      date: new Date().toISOString().split('T')[0],
+      date: activityDate,
       calories: parseInt(calories),
       steps: parseInt(steps),
       energy: energy, // Include energy level
@@ -85,10 +86,21 @@ const ActivityPage = () => {
 
         <div className="bg-white/10 backdrop-blur-md rounded-xl p-8 border border-white/20">
           <p className="text-blue-200 mb-6 text-center">
-            Enter your total calories consumed, steps taken, and energy level for today.
+            Enter your total calories consumed and steps taken for today.
           </p>
           <div className="space-y-6">
-            {/* Calories Input */}
+            <div>
+              <label className="flex items-center gap-2 text-white font-semibold mb-2">
+                Date
+              </label>
+              <input
+                type="date"
+                value={activityDate}
+                onChange={(e) => setActivityDate(e.target.value)}
+                className="w-full p-3 rounded-lg bg-white/20 border border-white/30 text-white placeholder-blue-200 focus:outline-none focus:ring-2 focus:ring-yellow-400"
+                disabled={isSubmitting}
+              />
+            </div>
             <div>
               <label className="flex items-center gap-2 text-white font-semibold mb-2">
                 <Flame className="text-yellow-400" /> Calories

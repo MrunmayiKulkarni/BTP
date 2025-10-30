@@ -29,6 +29,7 @@ const WorkoutPage = () => {
   const [numSets, setNumSets] = useState('');
   const [setDetails, setSetDetails] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [workoutDate, setWorkoutDate] = useState(new Date().toISOString().split('T')[0]);
 
   const { addWorkout, getExerciseProgress } = useWorkoutData();
   const progressData = getExerciseProgress(selectedExercise);
@@ -74,7 +75,7 @@ const WorkoutPage = () => {
 
     const workoutData = {
       exercise_name: selectedExercise,
-      workout_date: new Date().toISOString().split('T')[0],
+      workout_date: workoutDate,
       sets: setDetails.map((detail, index) => ({
         set_number: index + 1,
         reps: parseInt(detail.reps),
@@ -110,6 +111,16 @@ const WorkoutPage = () => {
 
         <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20">
           <div className="space-y-6">
+            <div>
+              <label className="block text-white font-semibold mb-2">Date</label>
+              <input
+                type="date"
+                value={workoutDate}
+                onChange={(e) => setWorkoutDate(e.target.value)}
+                className="w-full p-3 rounded-lg bg-white/20 border border-white/30 text-white placeholder-blue-200 focus:outline-none focus:ring-2 focus:ring-yellow-400"
+                disabled={isSubmitting}
+              />
+            </div>
             <div>
               <label className="block text-white font-semibold mb-2">Sets</label>
               <input

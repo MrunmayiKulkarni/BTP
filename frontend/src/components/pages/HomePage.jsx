@@ -6,19 +6,28 @@ import Header from '../common/Header';
 import { useAuth } from '../../hooks/useAuth';
 
 const HomePage = () => {
-  const { user, isAuthenticated, logout } = useAuth();
+  const { user, token, isAuthenticated, logout } = useAuth();
   const [userName, setUserName] = useState('');
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (user) {
-      const storageKey = `userProfile_${user.id}`;
-      const savedProfile = localStorage.getItem(storageKey);
-      if (savedProfile) {
-        setUserName(JSON.parse(savedProfile).name);
+    const fetchProfileName = async () => {
+      if (user && token) {
+        try {
+          const response = await fetch('http://localhost:3001/api/profile', {
+            headers: { 'Authorization': `Bearer ${token}` },
+          });
+          if (response.ok) {
+            const data = await response.json();
+            setUserName(data.name);
+          }
+        } catch (error) {
+          console.error('Failed to fetch user name:', error);
+        }
       }
-    }
-  }, [user]);
+    };
+    fetchProfileName();
+  }, [user, token]);
 
   const handleLogout = () => {
     logout();

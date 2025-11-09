@@ -62,7 +62,7 @@ export const useWorkoutData = () => {
     workoutHistory.forEach(workout => {
         const date = workout.workout_date.split('T')[0];
         if (!combined[date]) {
-            combined[date] = { date, workouts: [], calories: null, steps: null };
+            combined[date] = { date, workouts: [], calories: null, steps: null, energy: null };
         }
         const totalVolume = workout.sets.reduce((sum, set) => sum + set.reps * set.weight, 0);
         combined[date].workouts.push({ ...workout, totalVolume });
@@ -70,10 +70,11 @@ export const useWorkoutData = () => {
     activityHistory.forEach(activity => {
         const date = activity.activity_date.split('T')[0];
         if (!combined[date]) {
-            combined[date] = { date, workouts: [], calories: null, steps: null };
+            combined[date] = { date, workouts: [], calories: null, steps: null, energy: null };
         }
         combined[date].calories = activity.calories;
         combined[date].steps = activity.steps;
+        combined[date].energy = activity.energy;
     });
     return Object.values(combined).sort((a, b) => new Date(b.date) - new Date(a.date));
   };

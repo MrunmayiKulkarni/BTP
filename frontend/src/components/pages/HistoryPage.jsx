@@ -75,6 +75,7 @@ const HistoryPage = () => {
                     <div className="space-y-6">
                         <ActivityChart data={combinedData} dataKey="calories" name="Calories" strokeColor="#facc15" />
                         <ActivityChart data={combinedData} dataKey="steps" name="Steps" strokeColor="#4ade80" />
+                        <ActivityChart data={combinedData} dataKey="energy" name="Energy Level" strokeColor="#38bdf8" />
                     </div>
                 )}
 

@@ -6,7 +6,14 @@ const authMiddleware = (req, res, next) => {
   try {
     const token = req.headers.authorization.split(" ")[1];
     const decodedToken = jwt.verify(token, JWT_SECRET);
-    req.user = { id: decodedToken.userId }; // Attach user info to the request
+
+    // --- THIS IS THE FIX ---
+    // The decoded token payload is { id: ..., email: ... }
+    // We can just attach the whole decoded object to req.user.
+    // The previous code was `req.user = { id: decodedToken.userId }`,
+    // but the property name in the token is `id`, not `userId`.
+    req.user = decodedToken; 
+
     next();
   } catch (error) {
     return res.status(401).json({ message: 'Authentication failed' });

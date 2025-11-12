@@ -1,11 +1,16 @@
 import pandas as pd
 import numpy as np
-import joblib  # Use joblib as requested
+import joblib
 import sys
 import re
-import os # Import os to check if file exists
+import os
+import json # <-- Make sure json is imported
 
 def calculate_accuracy(model_path, csv_path):
+    # --- 1. Check if model file exists ---
+    if not os.path.exists(model_path):
+        raise FileNotFoundError(f"Model file not found at: {model_path}")
+
     # Load the model using joblib
     model = joblib.load(model_path)
 
@@ -39,25 +44,37 @@ def calculate_accuracy(model_path, csv_path):
     # Ensure accuracy is within 0-100 range
     accuracy = max(0, min(100, accuracy))
 
-    return accuracy
+    # --- 2. Return both accuracy and the predictions list ---
+    # Convert numpy array to a standard python list for JSON serialization
+    time_series_predictions = predictions.tolist()
+    
+    return accuracy, time_series_predictions
 
 if __name__ == '__main__':
     try:
         exercise = sys.argv[1]
         csv_path = sys.argv[2]
         
-        # --- THIS IS THE FIX ---
-        # Construct the model path directly from the exercise argument
-        # REMOVED: model_key = exercise.lower().replace(' ', '_')
-        model_path = f'models/{exercise}_best.joblib'
-        
-        # Check if the model file exists before trying to load it
-        if not os.path.exists(model_path):
-            raise FileNotFoundError(f"Model file not found: {model_path}. Check if the exercise name is correct.")
+        # Construct model path
+        model_name = f"{exercise}_best.joblib"
+        model_path = os.path.join(os.path.dirname(__file__), '..', 'models', model_name)
 
-        accuracy = calculate_accuracy(model_path, csv_path)
-        print(f"{accuracy:.2f}") # Print the accuracy
-    
+        # Get accuracy and time series
+        accuracy, time_series = calculate_accuracy(model_path, csv_path)
+        
+        # --- 3. Create a dictionary and print it as a JSON string ---
+        output = {
+            "overall_accuracy": accuracy,
+            "time_series_predictions": time_series
+        }
+        
+        # Print the JSON object as a single line
+        print(json.dumps(output))
+        
+        sys.stdout.flush()
+
     except Exception as e:
-        print(f"Error: {e}", file=sys.stderr)
-        sys.exit(1) # Exit with a non-zero status code to indicate failure
+        # Print any error to stderr so python-shell can catch it
+        print(f"Python Error: {str(e)}", file=sys.stderr)
+        sys.stderr.flush()
+        sys.exit(1) # Exit with a non-zero code to indicate failure

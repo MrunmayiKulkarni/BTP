@@ -95,9 +95,9 @@ app.use('/api/profile', authMiddleware, profileRoutes);
 app.get('/api/workouts', authMiddleware, async (req, res) => {
   try {
     const [workouts] = await pool.query(
-      `SELECT w.id, w.exercise, w.workout_date, s.set_number, s.reps, s.weight
+      `SELECT w.id, w.exercise_name AS exercise, w.workout_date, s.set_number, s.reps, s.weight
        FROM workouts w
-       JOIN sets s ON w.id = s.workout_id
+       JOIN workout_sets s ON w.id = s.workout_id
        WHERE w.user_id = ?
        ORDER BY w.workout_date DESC, w.id DESC, s.set_number ASC`,
       [req.user.id]
@@ -109,7 +109,7 @@ app.get('/api/workouts', authMiddleware, async (req, res) => {
       if (!acc[id]) {
         acc[id] = {
           id,
-          exercise,
+          exercise, // This will use the aliased 'exercise' from 'w.exercise_name AS exercise'
           workout_date,
           sets: [],
         };
@@ -132,8 +132,8 @@ app.get('/api/progress/:exercise', authMiddleware, async (req, res) => {
     const [progress] = await pool.query(
       `SELECT w.id, w.workout_date, s.set_number, s.reps, s.weight
        FROM workouts w
-       JOIN sets s ON w.id = s.workout_id
-       WHERE w.user_id = ? AND w.exercise = ?
+       JOIN workout_sets s ON w.id = s.workout_id
+       WHERE w.user_id = ? AND w.exercise_name = ?
        ORDER BY w.workout_date DESC, s.set_number ASC`,
       [req.user.id, exercise]
     );
@@ -174,7 +174,7 @@ app.post('/api/workouts', authMiddleware, async (req, res) => {
 
     // 1. Insert into workouts table
     const [workoutResult] = await connection.query(
-      'INSERT INTO workouts (user_id, exercise, workout_date) VALUES (?, ?, ?)',
+      'INSERT INTO workouts (user_id, exercise_name, workout_date) VALUES (?, ?, ?)',
       [userId, exercise, workout_date]
     );
     const workoutId = workoutResult.insertId;
@@ -188,7 +188,7 @@ app.post('/api/workouts', authMiddleware, async (req, res) => {
     ]);
 
     await connection.query(
-      'INSERT INTO sets (workout_id, set_number, reps, weight) VALUES ?',
+      'INSERT INTO workout_sets (workout_id, set_number, reps, weight) VALUES ?',
       [setValues]
     );
 
@@ -277,22 +277,33 @@ app.post('/api/upload', authMiddleware, upload.single('file'), async (req, res) 
       });
     });
 
-    // The script should print the accuracy.
-    const accuracy = parseFloat(results[0]);
+    // --- MODIFICATION ---
+    // 1. The script now returns a single line of JSON
+    if (!results || results.length === 0) {
+      throw new Error('Python script returned no output.');
+    }
     
-    if (isNaN(accuracy)) {
-        console.error('Python script did not return a valid number:', results);
+    const outputString = results[0];
+    const output = JSON.parse(outputString);
+
+    // 2. Validate the new JSON structure
+    if (!output || typeof output.overall_accuracy === 'undefined' || !Array.isArray(output.time_series_predictions)) {
+        console.error('Python script did not return a valid JSON object:', outputString);
         throw new Error('Invalid output from accuracy script.');
     }
 
-    console.log(`Accuracy calculated: ${accuracy}`);
+    console.log(`Accuracy calculated: ${output.overall_accuracy}`);
     
     // Clean up the uploaded file
     fs.unlink(file.path, (err) => {
       if (err) console.error(`Failed to delete temp file: ${file.path}`, err);
     });
 
-    res.status(200).json({ accuracy: accuracy.toFixed(2) });
+    // 3. Send the new JSON structure to the frontend
+    res.status(200).json({ 
+      accuracy: output.overall_accuracy.toFixed(2),
+      timeSeries: output.time_series_predictions
+    });
 
   } catch (err) {
     console.error('Error during accuracy calculation:', err);

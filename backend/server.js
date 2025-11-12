@@ -95,7 +95,7 @@ app.use('/api/profile', authMiddleware, profileRoutes);
 app.get('/api/workouts', authMiddleware, async (req, res) => {
   try {
     const [workouts] = await pool.query(
-      `SELECT w.id, w.exercise_name AS exercise, w.workout_date, s.set_number, s.reps, s.weight
+      `SELECT w.id, w.exercise_name, w.workout_date, s.set_number, s.reps, s.weight
        FROM workouts w
        JOIN workout_sets s ON w.id = s.workout_id
        WHERE w.user_id = ?
@@ -105,11 +105,11 @@ app.get('/api/workouts', authMiddleware, async (req, res) => {
 
     // Group sets by workout ID
     const groupedWorkouts = workouts.reduce((acc, row) => {
-      const { id, exercise, workout_date, set_number, reps, weight } = row;
+      const { id, exercise_name, workout_date, set_number, reps, weight } = row;
       if (!acc[id]) {
         acc[id] = {
           id,
-          exercise, // This will use the aliased 'exercise' from 'w.exercise_name AS exercise'
+          exercise_name,
           workout_date,
           sets: [],
         };
@@ -313,6 +313,11 @@ app.post('/api/upload', authMiddleware, upload.single('file'), async (req, res) 
       if (unlinkErr) console.error(`Failed to delete temp file after error: ${file.path}`, unlinkErr);
     });
     
+    // --- MODIFICATION: Check for specific model-not-found error ---
+    if (err.message && err.message.includes('Model file not found')) {
+      return res.status(404).json({ message: 'Accuracy model for this exercise is not present yet.' });
+    }
+
     res.status(500).json({ message: 'Error calculating accuracy.', error: err.message });
   }
 });

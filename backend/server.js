@@ -4,9 +4,31 @@ const jwt = require('jsonwebtoken');
 const pool = require('./db');
 const authMiddleware = require('./authMiddleware'); // <-- Import the standardized middleware
 const profileRoutes = require('./profileRoutes'); // <-- Import profile routes
+const multer = require('multer');
+const { PythonShell } = require('python-shell');
+const fs = require('fs');
 
 const app = express();
 const port = 3001;
+
+// --- MULTER CONFIGURATION ---
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    const dir = 'uploads/';
+    if (!fs.existsSync(dir)){
+        fs.mkdirSync(dir);
+    }
+    cb(null, dir);
+  },
+  filename: function (req, file, cb) {
+    // Create a unique filename to avoid conflicts
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, file.fieldname + '-' + uniqueSuffix + '-' + file.originalname);
+  }
+});
+
+const upload = multer({ storage: storage });
+
 
 const JWT_SECRET = 'your_super_secret_key'; // IMPORTANT: Use an environment variable in a real app
 
@@ -26,7 +48,7 @@ app.post('/signup', async (req, res) => {
     await pool.query('INSERT INTO users (email, password) VALUES (?, ?)', [email, password]);
     res.status(201).json({ message: 'User created successfully' });
   } catch (error) {
-    console.error(error);
+    console.error('Signup error:', error);
     res.status(500).json({ message: 'Internal server error' });
   }
 });
@@ -37,67 +59,151 @@ app.post('/login', async (req, res) => {
     const [users] = await pool.query('SELECT * FROM users WHERE email = ? AND password = ?', [email, password]);
     if (users.length > 0) {
       const user = users[0];
-      const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: '1h' });
-      res.status(200).json({ token, user: { id: user.id, email: user.email } });
+      const token = jwt.sign(
+        { id: user.id, email: user.email },
+        JWT_SECRET,
+        { expiresIn: '1h' }
+      );
+      res.status(200).json({ 
+        token, 
+        user: { 
+          id: user.id, 
+          email: user.email,
+          name: user.name, // Ensure these are sent on login
+          age: user.age,
+          weight: user.weight,
+          height: user.height
+        } 
+      });
     } else {
       res.status(401).json({ message: 'Invalid credentials' });
     }
   } catch (error) {
-    console.error(error);
+    console.error('Login error:', error);
     res.status(500).json({ message: 'Internal server error' });
   }
 });
 
 // --- PROFILE ENDPOINTS ---
-app.use('/api/profile', profileRoutes);
+// Use the imported profile routes, protected by authMiddleware
+app.use('/api/profile', authMiddleware, profileRoutes);
 
-// --- WORKOUT ENDPOINTS ---
 
+// --- WORKOUT LOGGING ENDPOINTS ---
+
+// Get all workout logs for a user (for history page)
 app.get('/api/workouts', authMiddleware, async (req, res) => {
   try {
     const [workouts] = await pool.query(
-      'SELECT id, exercise_name, workout_date FROM workouts WHERE user_id = ? ORDER BY workout_date DESC, id DESC',
+      `SELECT w.id, w.exercise, w.workout_date, s.set_number, s.reps, s.weight
+       FROM workouts w
+       JOIN sets s ON w.id = s.workout_id
+       WHERE w.user_id = ?
+       ORDER BY w.workout_date DESC, w.id DESC, s.set_number ASC`,
       [req.user.id]
     );
-    const workoutsWithSets = await Promise.all(workouts.map(async (workout) => {
-      const [sets] = await pool.query('SELECT set_number, reps, weight FROM workout_sets WHERE workout_id = ? ORDER BY set_number ASC', [workout.id]);
-      return { ...workout, sets };
-    }));
-    res.status(200).json(workoutsWithSets);
+
+    // Group sets by workout ID
+    const groupedWorkouts = workouts.reduce((acc, row) => {
+      const { id, exercise, workout_date, set_number, reps, weight } = row;
+      if (!acc[id]) {
+        acc[id] = {
+          id,
+          exercise,
+          workout_date,
+          sets: [],
+        };
+      }
+      acc[id].sets.push({ set_number, reps, weight });
+      return acc;
+    }, {});
+
+    res.status(200).json(Object.values(groupedWorkouts));
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Fetching workouts failed' });
+    console.error('Failed to fetch workouts:', error);
+    res.status(500).json({ message: 'Fetching workout history failed' });
   }
 });
 
+// Get progress for a specific exercise
+app.get('/api/progress/:exercise', authMiddleware, async (req, res) => {
+  const { exercise } = req.params;
+  try {
+    const [progress] = await pool.query(
+      `SELECT w.id, w.workout_date, s.set_number, s.reps, s.weight
+       FROM workouts w
+       JOIN sets s ON w.id = s.workout_id
+       WHERE w.user_id = ? AND w.exercise = ?
+       ORDER BY w.workout_date DESC, s.set_number ASC`,
+      [req.user.id, exercise]
+    );
+    
+    // Group sets by workout ID
+    const groupedProgress = progress.reduce((acc, row) => {
+      const { id, workout_date, set_number, reps, weight } = row;
+      if (!acc[id]) {
+        acc[id] = {
+          id,
+          workout_date,
+          sets: [],
+        };
+      }
+      acc[id].sets.push({ set_number, reps, weight });
+      return acc;
+    }, {});
+
+    res.status(200).json(Object.values(groupedProgress));
+  } catch (error) {
+    console.error('Failed to fetch progress:', error);
+    res.status(500).json({ message: 'Fetching progress failed' });
+  }
+});
+
+// Add a new workout log
 app.post('/api/workouts', authMiddleware, async (req, res) => {
-  const { exercise_name, workout_date, sets } = req.body;
+  const { exercise, sets, workout_date } = req.body;
+  const userId = req.user.id;
+
+  if (!exercise || !sets || !Array.isArray(sets) || sets.length === 0 || !workout_date) {
+    return res.status(400).json({ message: 'Invalid workout data. Exercise, date, and at least one set are required.' });
+  }
+
   const connection = await pool.getConnection();
   try {
     await connection.beginTransaction();
+
+    // 1. Insert into workouts table
     const [workoutResult] = await connection.query(
-      'INSERT INTO workouts (user_id, exercise_name, workout_date) VALUES (?, ?, ?)',
-      [req.user.id, exercise_name, workout_date]
+      'INSERT INTO workouts (user_id, exercise, workout_date) VALUES (?, ?, ?)',
+      [userId, exercise, workout_date]
     );
     const workoutId = workoutResult.insertId;
-    for (const set of sets) {
-      await connection.query(
-        'INSERT INTO workout_sets (workout_id, set_number, reps, weight) VALUES (?, ?, ?, ?)',
-        [workoutId, set.set_number, set.reps, set.weight]
-      );
-    }
+
+    // 2. Prepare and insert sets
+    const setValues = sets.map((set, index) => [
+      workoutId,
+      index + 1, // Use index + 1 for set_number
+      set.reps,
+      set.weight
+    ]);
+
+    await connection.query(
+      'INSERT INTO sets (workout_id, set_number, reps, weight) VALUES ?',
+      [setValues]
+    );
+
     await connection.commit();
-    res.status(201).json({ message: 'Workout added successfully' });
+    res.status(201).json({ message: 'Workout logged successfully', workoutId });
   } catch (error) {
     await connection.rollback();
-    console.error(error);
-    res.status(500).json({ message: 'Failed to add workout' });
+    console.error('Failed to log workout:', error);
+    res.status(500).json({ message: 'Logging workout failed' });
   } finally {
     connection.release();
   }
 });
 
-// --- ACTIVITY ENDPOINTS (This is the missing part!) ---
+// --- ACTIVITY ENDPOINTS ---
 
 app.get('/api/activities', authMiddleware, async (req, res) => {
   try {
@@ -130,10 +236,78 @@ app.post('/api/activities', authMiddleware, async (req, res) => {
     res.status(201).json({ message: 'Activity logged successfully' });
   } catch (error) {
     console.error('Failed to log activity:', error);
-    res.status(500).json({ message: 'Logging activity failed' });
+    res.status(500).json({ message: 'Failed to log activity' });
   }
 });
 
+
+// --- FILE UPLOAD FOR ACCURACY ---
+app.post('/api/upload', authMiddleware, upload.single('file'), async (req, res) => {
+  const { exercise } = req.body;
+  const file = req.file;
+
+  if (!file) {
+    return res.status(400).json({ message: 'No file uploaded.' });
+  }
+  if (!exercise) {
+    return res.status(400).json({ message: 'No exercise specified.' });
+  }
+
+  console.log(`File received: ${file.path}, Exercise: ${exercise}`);
+
+  const options = {
+    mode: 'text',
+    pythonOptions: ['-u'], // unbuffered
+    scriptPath: __dirname, // Path to the script (current directory)
+    args: [exercise, file.path] // Pass exercise and file path to the script
+  };
+
+  try {
+    // Wrap the python-shell call in a new promise to ensure correct async/await handling
+    const results = await new Promise((resolve, reject) => {
+      // --- FIX: Updated the path to the python script ---
+      PythonShell.run('scripts/calculate_accuracy.py', options, (err, results) => {
+        if (err) {
+          console.error('PythonShell Error:', err);
+          return reject(err);
+        }
+        // 'results' is an array of strings printed by the Python script
+        console.log('Python script output:', results);
+        resolve(results);
+      });
+    });
+
+    // The script should print the accuracy.
+    const accuracy = parseFloat(results[0]);
+    
+    if (isNaN(accuracy)) {
+        console.error('Python script did not return a valid number:', results);
+        throw new Error('Invalid output from accuracy script.');
+    }
+
+    console.log(`Accuracy calculated: ${accuracy}`);
+    
+    // Clean up the uploaded file
+    fs.unlink(file.path, (err) => {
+      if (err) console.error(`Failed to delete temp file: ${file.path}`, err);
+    });
+
+    res.status(200).json({ accuracy: accuracy.toFixed(2) });
+
+  } catch (err) {
+    console.error('Error during accuracy calculation:', err);
+    
+    // Clean up the file even if there's an error
+    fs.unlink(file.path, (unlinkErr) => { // A typo was here: file.Tpath, corrected to file.path
+      if (unlinkErr) console.error(`Failed to delete temp file after error: ${file.path}`, unlinkErr);
+    });
+    
+    res.status(500).json({ message: 'Error calculating accuracy.', error: err.message });
+  }
+});
+
+
+// --- SERVER START ---
 app.listen(port, () => {
-  console.log(`Server running on http://localhost:${port}`);
+  console.log(`Server listening at http://localhost:${port}`);
 });

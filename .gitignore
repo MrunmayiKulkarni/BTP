@@ -52,3 +52,5 @@ frontend/coverage/
 # (optional) If your db.json contains test data you don't want
 # to commit, uncomment the line below.
 # backend/db.json
+
+Machine Learning/

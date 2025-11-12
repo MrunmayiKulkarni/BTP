@@ -29,6 +29,10 @@ const WorkoutPage = () => {
   const [numSets, setNumSets] = useState('');
   const [setDetails, setSetDetails] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isCalculating, setIsCalculating] = useState(false);
+  const [accuracy, setAccuracy] = useState(null);
+  const [uploadError, setUploadError] = useState('');
+  const [file, setFile] = useState(null);
   const [workoutDate, setWorkoutDate] = useState(new Date().toISOString().split('T')[0]);
 
   const { addWorkout, getExerciseProgress } = useWorkoutData();
@@ -91,6 +95,45 @@ const WorkoutPage = () => {
       alert('Failed to log workout. Please try again.');
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleFileChange = (e) => {
+    setFile(e.target.files[0]);
+    setAccuracy(null);
+    setUploadError('');
+  };
+
+  const handleCalculateAccuracy = async () => {
+    if (!file) {
+      alert('Please select a file first.');
+      return;
+    }
+
+    setIsCalculating(true);
+    setUploadError('');
+    setAccuracy(null);
+
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('exercise', selectedExercise);
+
+    try {
+      const response = await fetch('http://localhost:3001/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to calculate accuracy.');
+      }
+      setAccuracy(data.accuracy);
+    } catch (error) {
+      setUploadError(error.message);
+    } finally {
+      setIsCalculating(false);
     }
   };
 
@@ -173,6 +216,38 @@ const WorkoutPage = () => {
             >
               {isSubmitting ? 'Logging...' : 'Log Workout'}
             </button>
+          </div>
+        </div>
+
+        <div className="mt-6 bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20">
+          <h3 className="text-white font-semibold mb-4">Calculate Form Accuracy</h3>
+          <div className="space-y-4">
+            <input
+              type="file"
+              onChange={handleFileChange}
+              className="w-full text-sm text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-yellow-50 file:text-yellow-700 hover:file:bg-yellow-100"
+              accept=".csv"
+            />
+            <button
+              onClick={handleCalculateAccuracy}
+              disabled={isCalculating || !file}
+              className="w-full bg-blue-500 hover:bg-blue-600 disabled:bg-gray-500 disabled:cursor-not-allowed text-white font-bold py-3 px-6 rounded-lg transition-colors duration-300"
+            >
+              {isCalculating ? 'Calculating...' : 'Calculate Accuracy'}
+            </button>
+            {accuracy !== null && (
+              <div className="text-center p-4 bg-green-500/20 rounded-lg border border-green-500">
+                <p className="font-bold text-lg text-white">Form Accuracy:</p>
+                <p className="text-3xl font-extrabold text-green-300">
+                  {Number(accuracy).toFixed(2)}%
+                </p>
+              </div>
+            )}
+            {uploadError && (
+              <div className="text-center p-3 bg-red-500/20 rounded-lg border border-red-500">
+                <p className="text-sm text-red-300">{uploadError}</p>
+              </div>
+            )}
           </div>
         </div>
 
